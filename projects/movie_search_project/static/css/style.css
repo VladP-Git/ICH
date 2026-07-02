@@ -1,0 +1,21 @@
+/* Настройка «живого» фона для Hero-секции */
+.hero-section {
+    position: relative;
+    min-height: 40vh;
+    /* Используем стабильную прямую ссылку на фото кинотеатра из Unsplash */
+    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)),
+                  url('../images/hero-bg2.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+/* Эффект увеличения карточки при наведении мыши */
+.transition-hover {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.transition-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
