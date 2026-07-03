@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск фильмов — Sakila Cinema</title>
+    <!-- Подключаем Bootstrap 5 CSS локально -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <!-- Подключаем Bootstrap Icons для красивых иконок локально -->
+    <link href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}" rel="stylesheet">
+    <!-- Кастомные стили -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+<body class="bg-light">
+
+<!-- Шапка (Hero-секция) с красивым фоном из Unsplash -->
+<header class="hero-section text-white text-center d-flex align-items-center justify-content-center">
+    <div class="container position-relative z-3">
+        <h1 class="display-4 fw-bold mb-3">Найди свой любимый фильм</h1>
+        <p class="lead mb-4">Учебный проект поиска по базе данных Sakila</p>
+
+        <!-- Форма поиска -->
+        <form method="GET" action="/" class="row g-2 justify-content-center bg-dark bg-opacity-75 p-4 rounded-4 shadow">
+            <!-- Поле ключевого слова -->
+            <div class="col-md-5">
+                <!-- Добавляем скрытый label, связанный с input через id -->
+                <label for="search_word_input" class="visually-hidden">Название фильма или описание</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="search_word" id="search_word_input" value="{{ search_word }}"
+                           class="form-control border-start-0" placeholder="Название фильма или описание...">
+                </div>
+            </div>
+
+            <!-- Фильтр: Жанр -->
+            <div class="col-md-3">
+                <!-- Добавляем скрытый label, связанный с select через id -->
+                <label for="category_select" class="visually-hidden">Выберите жанр</label>
+                <select name="category" id="category_select" class="form-select">
+                    <option value="" {% if not category %}selected{% endif %}>Все жанры</option>
+                    <option value="Action" {% if category == 'Action' %}selected{% endif %}>Action</option>
+                    <option value="Comedy" {% if category == 'Comedy' %}selected{% endif %}>Comedy</option>
+                    <option value="Drama" {% if category == 'Drama' %}selected{% endif %}>Drama</option>
+                </select>
+            </div>
+
+            <!-- Фильтр: Год выпуска -->
+            <div class="col-md-2">
+                <!-- Добавляем скрытый label, связанный с input через id -->
+                <label for="year_input" class="visually-hidden">Год выпуска</label>
+                <input type="number" name="year" id="year_input" value="{{ year }}" class="form-control"
+                       placeholder="Год (например, 2012)" min="1900" max="2026">
+            </div>
+
+            <!-- Кнопка поиска -->
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100 fw-bold">Искать</button>
+            </div>
+        </form>
+    </div>
+</header>
+
+<!-- Основной контент: Результаты поиска -->
+<main class="container my-5">
+
+    <!-- Сетка карточек фильмов (Bootstrap Grid) -->
+    <!-- Динамический вывод результатов в index.html -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4">
+            {% if is_searched %} Результаты поиска {% else %} Новинки проката {% endif %}
+            <span class="badge bg-secondary fs-6">Найдено: {{ movies|length }}</span>
+        </h2>
+        <a href="/stats" class="btn btn-outline-secondary btn-sm"><i class="bi bi-bar-chart-fill me-1"></i> Статистика
+            запросов</a>
+    </div>
+
+    <!-- Сетка карточек фильмов -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% if movies %}
+            {% for movie in movies %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm transition-hover">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title text-truncate mb-0"
+                                    title="{{ movie.title }}">{{ movie.title }}</h5>
+                                <span class="badge bg-primary">{{ movie.category_name }}</span>
+                            </div>
+                            <p class="card-text text-muted small">{{ movie.description }}</p>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 d-flex justify-content-between align-items-center pb-3">
+                    <span class="text-secondary small"><i
+                            class="bi bi-calendar3 me-1"></i> {{ movie.release_year }}</span>
+                            <span class="text-secondary small"><i class="bi bi-clock me-1"></i> {{ movie.length }} мин.</span>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center my-5">
+                <i class="bi bi-film text-muted display-1"></i>
+                <p class="lead text-secondary mt-3">Фильмы по вашему запросу не найдены. Попробуйте изменить
+                    фильтры.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Кнопка пагинации (Показать еще) -->
+    <div class="text-center mt-5">
+        <button class="btn btn-outline-primary px-4 py-2 fw-bold">Показать еще 10 фильмов</button>
+    </div>
+</main>
+
+<!-- Подключаем Bootstrap 5 JS Bundle локально -->
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+
+</body>
+</html>

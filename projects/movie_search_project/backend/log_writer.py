@@ -33,13 +33,15 @@ def write_search_log(search_word=None, category=None, year=None, results_count=0
     }
 
     # 2. Подключаемся к MongoDB и записываем документ
+    client = None
+
     try:
         # Создаем клиента (тайм-аут 5 секунд, чтобы скрипт не зависал при плохой сети)
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 
         # Подключаемся к базе данных. Обычно имя базы зашито в URI,
-        # либо используется стандартная база, указанная школой (например, 'sakila_logs' или 'test')
-        # Если школа дала конкретное имя БД, замените client.get_default_database() на client['имя_бд']
+        # в текущей реализации используется локальная база
+        # Если есть конкретное имя БД, нужно заменить client.get_default_database() на client['имя_бд']
         # db = client.get_default_database()db = client.get_default_database
         db = client['sakila_logs']
         collection = db[MONGO_COLLECTION_NAME]

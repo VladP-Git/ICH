@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статистика запросов — Sakila Cinema</title>
+    <!-- Подключаем Bootstrap 5 CSS локально -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <!-- Подключаем Bootstrap Icons для красивых иконок локально -->
+    <link href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<!-- Навигация / Хлебные крошки -->
+<nav class="bg-white border-bottom py-3 mb-5 shadow-sm">
+    <div class="container d-flex justify-content-between align-items-center">
+        <nav aria-label="breadcrumb" class="mb-0">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none"><i
+                        class="bi bi-house-door-fill me-1"></i>Главная</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Статистика поисковых запросов</li>
+            </ol>
+        </nav>
+        <span class="text-muted small">Учебный проект (NoSQL данные)</span>
+    </div>
+</nav>
+
+<!-- Основной контент -->
+<main class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+            <!-- Заголовок секции -->
+            <div class="text-center mb-5">
+                <h1 class="fw-bold mb-2">Аналитика поиска</h1>
+                <p class="text-secondary">Данные собираются в реальном времени и логируются в СУБД MongoDB</p>
+            </div>
+
+            <!-- Карточка со статистикой -->
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-dark text-white py-3 d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0 fw-semibold"><i class="bi bi-graph-up-arrow me-2 text-warning"></i>Топ-5 популярных
+                        поисковых запросов</h5>
+                    <span class="badge bg-secondary">MongoDB</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0 align-middle">
+                            <thead class="table-light text-uppercase fs-7 text-secondary">
+                            <tr>
+                                <th scope="col" class="ps-4" style="width: 10%">Место</th>
+                                <th scope="col" style="width: 60%">Поисковый запрос (Ключевое слово)</th>
+                                <th scope="col" class="text-end pe-4" style="width: 30%">Количество вызовов</th>
+                            </tr>
+                            </thead>
+                            <!-- Динамическая таблица статистики в stats.html -->
+                            <tbody>
+                            {% if top_searches %}
+                            {% for item in top_searches %}
+                            <tr>
+                                <!-- Выводим ранг (#1, #2 и т.д.) -->
+                                <td class="ps-4 fw-bold {% if item.rank in ['#1', '#2', '#3'] %}text-primary{% else %}text-secondary{% endif %}">
+                                    {{ item.rank }}
+                                </td>
+                                <!-- Выводим ключевое слово -->
+                                <td>
+                                                <span class="badge bg-light text-dark border py-2 px-3 fs-6">
+                                                    {{ item.keyword }}
+                                                </span>
+                                </td>
+                                <!-- Выводим количество вызовов -->
+                                <td class="text-end pe-4 fw-bold">
+                                    {{ item.count }} {% if item.count % 10 == 1 and item.count % 100 != 11 %}раз{% else
+                                    %}раза{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted">
+                                    <i class="bi bi-bar-chart me-2"></i> История поисковых запросов пока пуста.
+                                </td>
+                            </tr>
+                            {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Кнопка возврата -->
+            <div class="text-center mt-4">
+                <a href="/" class="btn btn-primary px-4 py-2 rounded-3 fw-bold"><i class="bi bi-arrow-left me-2"></i>
+                    Вернуться к поиску</a>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<!-- Подключаем Bootstrap 5 JS Bundle локально -->
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

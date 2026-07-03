@@ -60,7 +60,7 @@ def get_movies(search_word=None, category=None, year=None, limit=10, offset=0):
         connection.close()
 
 
-# Блок для локального тестирования модуля прямо в консоли (через tabulate)
+# Блок для локального тестирования модуля прямо в консоли
 if __name__ == "__main__":
     from tabulate import tabulate
 

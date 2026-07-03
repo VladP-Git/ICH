@@ -8,6 +8,9 @@ def get_top_5_searches():
     Функция агрегации логов из MongoDB.
     Возвращает Топ-5 самых популярных поисковых запросов пользователей.
     """
+
+    client = None
+
     try:
         # Подключение к локальной БД
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
@@ -64,14 +67,14 @@ def get_top_5_searches():
 if __name__ == "__main__":
     print("Тестирование извлечения Топ-5 поисковых запросов из MongoDB...")
 
-    # Чтобы статистика была наглядной, запишем еще пару разных логов для теста
+    # Чтобы статистика была более наглядной, запишется несколько разных логов для теста
     from log_writer import write_search_log
 
     write_search_log(search_word="dinosaur", results_count=5)
     write_search_log(search_word="dinosaur", results_count=5)
     write_search_log(search_word="matrix", results_count=1)
 
-    # Вызываем нашу функцию статистики
+    # Вызываем функцию статистики
     stats = get_top_5_searches()
 
     if stats:

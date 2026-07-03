@@ -2,9 +2,9 @@
 .hero-section {
     position: relative;
     min-height: 40vh;
-    /* Используем стабильную прямую ссылку на фото кинотеатра из Unsplash */
+    /* Используем стабильную прямую ссылку на фото в стиле кино из Unsplash */
     background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)),
-                  url('../images/hero-bg2.jpg');
+    url('../images/hero-bg2.jpg');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
