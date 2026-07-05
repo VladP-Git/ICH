@@ -41,9 +41,10 @@
                 <label for="category_select" class="visually-hidden">Выберите жанр</label>
                 <select name="category" id="category_select" class="form-select">
                     <option value="" {% if not category %}selected{% endif %}>Все жанры</option>
-                    <option value="Action" {% if category == 'Action' %}selected{% endif %}>Action</option>
-                    <option value="Comedy" {% if category == 'Comedy' %}selected{% endif %}>Comedy</option>
-                    <option value="Drama" {% if category == 'Drama' %}selected{% endif %}>Drama</option>
+                    <!-- Цикл Jinja2 пробегает по списку строк, полученных из MySQL -->
+                    {% for cat in categories %}
+                        <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
                 </select>
             </div>
 
@@ -108,10 +109,83 @@
         {% endif %}
     </div>
 
-    <!-- Кнопка пагинации (Показать еще) -->
-    <div class="text-center mt-5">
-        <button class="btn btn-outline-primary px-4 py-2 fw-bold">Показать еще 10 фильмов</button>
+    <!-- Секция пагинации (Кнопка "Показать еще" + Цифровое меню) -->
+    <div class="mt-5">
+        {% if total_pages > 1 %}
+
+            <!-- 1. Кнопка "Показать еще" (Выполнение ТЗ) -->
+            <!-- При клике она просто перенаправляет на следующую страницу, сохраняя фильтры -->
+            <div class="text-center mb-4">
+                {% if current_page < total_pages %}
+                    <a href="{{ url_for('index_page', search_word=search_word, category=category, year=year, page=current_page + 1) }}"
+                       class="btn btn-outline-primary px-4 py-2 fw-bold shadow-sm">
+                        <i class="bi bi-plus-circle me-2"></i>Показать еще 10 фильмов
+                    </a>
+                {% else %}
+                    <button class="btn btn-outline-secondary px-4 py-2 fw-bold" disabled>
+                        <i class="bi bi-check-all me-2"></i>Вы посмотрели все фильмы
+                    </button>
+                {% endif %}
+            </div>
+
+            <!-- 2. Цифровое навигационное меню < 1 ... 3 4 5 ... 7 > -->
+            <nav aria-label="Навигация по фильмам">
+                <ul class="pagination justify-content-center shadow-sm rounded">
+
+                    <!-- Стрелка "Назад" (Активна, если мы не на первой странице) -->
+                    <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+                        <a class="page-line page-link"
+                           href="{{ url_for('index_page', search_word=search_word, category=category, year=year, page=current_page - 1) }}"
+                           aria-label="Предыдущая">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Генерируем цифровые страницы при помощи цикла Jinja2 -->
+                    <!-- Создаём динамический ряд кнопок от 1 до максимального числа страниц -->
+                    {% for p in range(1, total_pages + 1) %}
+
+                        <!-- Логика отображения: первая, последняя или в радиусе 1 шага от текущей -->
+                        {% if p == 1 or p == total_pages or (p >= current_page - 1 and p <= current_page + 1) %}
+
+                            <li class="page-item {% if current_page == p %}active{% endif %}">
+                                <a class="page-link"
+                                   href="{{ url_for('index_page', search_word=search_word, category=category, year=year, page=p) }}">
+                                    {{ p }}
+                                </a>
+                            </li>
+
+                            <!-- Если мы пролетели мимо соседей, но еще не дошли до конца, ставим ОДНО многоточие слева или справа -->
+                        {% elif p == 2 or p == total_pages - 1 %}
+
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+
+                        {% endif %}
+
+                    {% endfor %}
+
+                    <!-- Стрелка "Вперед" (Активна, если мы не на последней странице) -->
+                    <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+                        <a class="page-link"
+                           href="{{ url_for('index_page', search_word=search_word, category=category, year=year, page=current_page + 1) }}"
+                           aria-label="Следующая">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+
+                </ul>
+            </nav>
+
+            <!-- Дополнительная информационная строчка для пользователя -->
+            <div class="text-center text-muted small mt-2">
+                Страница {{ current_page }} из {{ total_pages }} (Всего найдено фильмов: {{ total_movies }})
+            </div>
+
+        {% endif %}
     </div>
+
 </main>
 
 <!-- Подключаем Bootstrap 5 JS Bundle локально -->
