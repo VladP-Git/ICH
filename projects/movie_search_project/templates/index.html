@@ -6,12 +6,10 @@
     <title>Поиск фильмов — Sakila Cinema</title>
     <!-- Подключаем Bootstrap 5 CSS локально -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     <!-- Подключаем Bootstrap Icons для красивых иконок локально -->
     <link href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}" rel="stylesheet">
     <!-- Кастомные стили -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 
 </head>
 <body class="bg-light">
@@ -25,18 +23,18 @@
         <!-- Форма поиска -->
         <form method="GET" action="/" class="row g-2 justify-content-center bg-dark bg-opacity-75 p-4 rounded-4 shadow">
             <!-- Поле ключевого слова -->
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <!-- Добавляем скрытый label, связанный с input через id -->
                 <label for="search_word_input" class="visually-hidden">Название фильма или описание</label>
                 <div class="input-group">
                     <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                     <input type="text" name="search_word" id="search_word_input" value="{{ search_word }}"
-                           class="form-control border-start-0" placeholder="Название фильма или описание...">
+                           class="form-control border-start-0" placeholder="Название или описание...">
                 </div>
             </div>
 
             <!-- Фильтр: Жанр -->
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <!-- Добавляем скрытый label, связанный с select через id -->
                 <label for="category_select" class="visually-hidden">Выберите жанр</label>
                 <select name="category" id="category_select" class="form-select">
@@ -48,12 +46,23 @@
                 </select>
             </div>
 
-            <!-- Фильтр: Год выпуска -->
+            <!-- Фильтр: Год выпуска ОТ -->
             <div class="col-md-2">
-                <!-- Добавляем скрытый label, связанный с input через id -->
-                <label for="year_input" class="visually-hidden">Год выпуска</label>
-                <input type="number" name="year" id="year_input" value="{{ year }}" class="form-control"
-                       placeholder="Год (например, 2012)" min="1900" max="2026">
+                <!-- Добавляем скрытый label, связанный с year_from_input через id -->
+                <label for="year_from_input" class="visually-hidden">Год выпуска от</label>
+                <!-- В placeholder динамически подставляется минимальный год из базы -->
+                <input type="number" name="year_from" id="year_from_input" value="{{ year_from }}" class="form-control"
+                       placeholder="Год от ({{ min_db_year }})" min="{{ min_db_year }}" max="{{ max_db_year }}">
+            </div>
+
+            <!-- Фильтр: Год выпуска ДО -->
+            <div class="col-md-2">
+                <!-- Добавляем скрытый label, связанный с year_to_input через id -->
+                <label for="year_to_input" class="visually-hidden">Год выпуска до</label>
+                <!-- В placeholder динамически подставляется максимальный год из базы -->
+                <input type="number" name="year_to" id="year_to_input" value="{{ year_to }}" class="form-control"
+                       placeholder="Год до ({{ max_db_year }})" min="{{ min_db_year }}" max="{{ max_db_year }}"
+                       onfocus="if(!this.value) { this.value='{{ max_db_year }}'; }">
             </div>
 
             <!-- Кнопка поиска -->
@@ -72,7 +81,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h4">
             {% if is_searched %} Результаты поиска {% else %} Новинки проката {% endif %}
-            <span class="badge bg-secondary fs-6">Найдено: {{ movies|length }}</span>
+            <span class="badge bg-secondary fs-6">Отображено карточек : {{ movies|length }}</span>
         </h2>
         <a href="/stats" class="btn btn-outline-secondary btn-sm"><i class="bi bi-bar-chart-fill me-1"></i> Статистика
             запросов</a>
@@ -117,7 +126,7 @@
             <!-- При клике она просто перенаправляет на следующую страницу, сохраняя фильтры -->
             <div class="text-center mb-4">
                 {% if current_page < total_pages %}
-                    <a href="{{ url_for('index_page', search_word=search_word, category=category, year=year, page=current_page + 1) }}"
+                    <a href="{{ url_for('index_page', search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1) }}"
                        class="btn btn-outline-primary px-4 py-2 fw-bold shadow-sm">
                         <i class="bi bi-plus-circle me-2"></i>Показать еще 10 фильмов
                     </a>
@@ -135,7 +144,7 @@
                     <!-- Стрелка "Назад" (Активна, если мы не на первой странице) -->
                     <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
                         <a class="page-line page-link"
-                           href="{{ url_for('index_page', search_word=search_word, category=category, year=year, page=current_page - 1) }}"
+                           href="{{ url_for('index_page', search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page - 1) }}"
                            aria-label="Предыдущая">
                             <span aria-hidden="true">&laquo;</span>
                         </a>
@@ -150,7 +159,7 @@
 
                             <li class="page-item {% if current_page == p %}active{% endif %}">
                                 <a class="page-link"
-                                   href="{{ url_for('index_page', search_word=search_word, category=category, year=year, page=p) }}">
+                                   href="{{ url_for('index_page', search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=p) }}">
                                     {{ p }}
                                 </a>
                             </li>
@@ -169,7 +178,7 @@
                     <!-- Стрелка "Вперед" (Активна, если мы не на последней странице) -->
                     <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
                         <a class="page-link"
-                           href="{{ url_for('index_page', search_word=search_word, category=category, year=year, page=current_page + 1) }}"
+                           href="{{ url_for('index_page', search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1) }}"
                            aria-label="Следующая">
                             <span aria-hidden="true">&raquo;</span>
                         </a>

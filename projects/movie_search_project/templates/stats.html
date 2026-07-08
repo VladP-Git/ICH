@@ -58,37 +58,80 @@
                             <!-- Динамическая таблица статистики в stats.html -->
                             <tbody>
                             {% if top_searches %}
-                            {% for item in top_searches %}
-                            <tr>
-                                <!-- Выводим ранг (#1, #2 и т.д.) -->
-                                <td class="ps-4 fw-bold {% if item.rank in ['#1', '#2', '#3'] %}text-primary{% else %}text-secondary{% endif %}">
-                                    {{ item.rank }}
-                                </td>
-                                <!-- Выводим ключевое слово -->
-                                <td>
+                                {% for item in top_searches %}
+                                    <tr>
+                                        <!-- Выводим ранг (#1, #2 и т.д.) -->
+                                        <td class="ps-4 fw-bold {% if item.rank in ['#1', '#2', '#3'] %}text-primary{% else %}text-secondary{% endif %}">
+                                            {{ item.rank }}
+                                        </td>
+                                        <!-- Выводим ключевое слово -->
+                                        <td>
                                                 <span class="badge bg-light text-dark border py-2 px-3 fs-6">
                                                     {{ item.keyword }}
                                                 </span>
-                                </td>
-                                <!-- Выводим количество вызовов -->
-                                <td class="text-end pe-4 fw-bold">
-                                    {{ item.count }} {% if item.count % 10 == 1 and item.count % 100 != 11 %}раз{% else
-                                    %}раза{% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
+                                        </td>
+                                        <!-- Выводим количество вызовов -->
+                                        <td class="text-end pe-4 fw-bold">
+                                            {{ item.count }} {% if item.count % 10 == 1 and item.count % 100 != 11 %}
+                                            раз{% else %}раза{% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
                             {% else %}
-                            <tr>
-                                <td colspan="3" class="text-center py-4 text-muted">
-                                    <i class="bi bi-bar-chart me-2"></i> История поисковых запросов пока пуста.
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td colspan="3" class="text-center py-4 text-muted">
+                                        <i class="bi bi-bar-chart me-2"></i> История поисковых запросов пока пуста.
+                                    </td>
+                                </tr>
                             {% endif %}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
+
+            <!-- Карточка №2: Последние 5 запросов -->
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4 mt-5">
+                <div class="card-header bg-dark text-white py-3 d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0 fw-semibold"><i class="bi bi-clock-history me-2 text-info"></i>5 последних поисковых
+                        запросов</h5>
+                    <span class="badge bg-secondary">История логов</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0 align-middle">
+                            <thead class="table-light text-uppercase fs-7 text-secondary">
+                            <tr>
+                                <th scope="col" class="ps-4" style="width: 15%">Время</th>
+                                <th scope="col" style="width: 55%">Критерии поиска</th>
+                                <th scope="col" style="width: 15%">Тип</th>
+                                <th scope="col" class="text-end pe-4" style="width: 15%">Найдено</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% if last_searches %}
+                                {% for item in last_searches %}
+                                    <tr>
+                                        <td class="ps-4 text-muted small">{{ item.time }}</td>
+                                        <td><span class="fw-medium text-dark">{{ item.params }}</span></td>
+                                        <td><span class="badge bg-light text-secondary border">{{ item.type }}</span>
+                                        </td>
+                                        <td class="text-end pe-4 fw-bold text-success">{{ item.results }} ф.</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        <i class="bi bi-info-circle me-2"></i> История запросов пуста.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
 
             <!-- Кнопка возврата -->
             <div class="text-center mt-4">

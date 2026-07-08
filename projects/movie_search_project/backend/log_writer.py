@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from local_settings import MONGO_URI, MONGO_COLLECTION_NAME
+from logger_config import app_logger
 
 
 def write_search_log(search_word=None, category=None, year=None, results_count=0):
@@ -13,7 +14,8 @@ def write_search_log(search_word=None, category=None, year=None, results_count=0
     search_params = {}
     if search_word: search_params['search_word'] = search_word
     if category: search_params['category'] = category
-    if year: search_params['year'] = int(year)
+    if year:
+        search_params['year'] = year
 
     # Определяем тип поиска на основе заполненных полей
     if search_word and not category and not year:
@@ -48,11 +50,13 @@ def write_search_log(search_word=None, category=None, year=None, results_count=0
 
         # Вставляем документ в коллекцию
         result = collection.insert_one(log_document)
-        print(f"[MongoDB] Лог успешно записан. ID документа: {result.inserted_id}")
+        print(f"Лог поиска успешно записан в MongoDB. ID: {result.inserted_id}")
+        app_logger.info(f"Лог поиска успешно записан в MongoDB. ID: {result.inserted_id}")
         return True
 
     except PyMongoError as err:
-        print(f"[MongoDB] Ошибка при записи лога: {err}")
+        print(f"Критическая ошибка записи лога в MongoDB: {err}")
+        app_logger.error(f"Критическая ошибка записи лога в MongoDB: {err}")
         return False
     finally:
         client.close()
