@@ -22,6 +22,9 @@
 
         <!-- Форма поиска -->
         <form method="GET" action="/" class="row g-2 justify-content-center bg-dark bg-opacity-75 p-4 rounded-4 shadow">
+            <!-- Скрытый маркер для бэкенда, сообщающий, что кнопка "Искать" была нажата -->
+            <input type="hidden" name="search_submitted" value="1">
+
             <!-- Поле ключевого слова -->
             <div class="col-md-4">
                 <!-- Добавляем скрытый label, связанный с input через id -->
@@ -126,7 +129,7 @@
             <!-- При клике она просто перенаправляет на следующую страницу, сохраняя фильтры -->
             <div class="text-center mb-4">
                 {% if current_page < total_pages %}
-                    <a href="{{ url_for('index_page', search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1) }}"
+                    <a href="{{ url_for('index_page', search_submitted=1, search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1) }}"
                        class="btn btn-outline-primary px-4 py-2 fw-bold shadow-sm">
                         <i class="bi bi-plus-circle me-2"></i>Показать еще 10 фильмов
                     </a>
@@ -144,7 +147,7 @@
                     <!-- Стрелка "Назад" (Активна, если мы не на первой странице) -->
                     <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
                         <a class="page-line page-link"
-                           href="{{ url_for('index_page', search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page - 1) }}"
+                           href="{{ url_for('index_page', search_submitted=1, search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page - 1) }}"
                            aria-label="Предыдущая">
                             <span aria-hidden="true">&laquo;</span>
                         </a>
@@ -159,7 +162,7 @@
 
                             <li class="page-item {% if current_page == p %}active{% endif %}">
                                 <a class="page-link"
-                                   href="{{ url_for('index_page', search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=p) }}">
+                                   href="{{ url_for('index_page', search_submitted=1, search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=p) }}">
                                     {{ p }}
                                 </a>
                             </li>
@@ -178,7 +181,7 @@
                     <!-- Стрелка "Вперед" (Активна, если мы не на последней странице) -->
                     <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
                         <a class="page-link"
-                           href="{{ url_for('index_page', search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1) }}"
+                           href="{{ url_for('index_page', search_submitted=1, search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1) }}"
                            aria-label="Следующая">
                             <span aria-hidden="true">&raquo;</span>
                         </a>

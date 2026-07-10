@@ -1,6 +1,6 @@
+from datetime import timezone
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-from datetime import timezone
 from local_settings import MONGO_URI, MONGO_COLLECTION_NAME
 
 
@@ -66,7 +66,8 @@ def get_top_5_searches():
 
 def get_last_5_searches():
     """
-    Извлекает 5 последних поисковых запросов пользователей из MongoDB.
+    Извлекает 5 последних уникальных поисковых запросов пользователей из MongoDB,
+    оставляя только самую свежую запись из повторяющихся.
     """
     client = None
     try:
@@ -74,34 +75,57 @@ def get_last_5_searches():
         db = client['sakila_logs']
         collection = db[MONGO_COLLECTION_NAME]
 
-        # Находим документы, где есть параметры поиска, сортируем по убыванию времени и берем 5 штук
-        cursor = collection.find({"params": {"$ne": {}}}).sort("timestamp", -1).limit(5)
+        # Конвейер агрегации для поиска уникальных последних логов
+        pipeline = [
+            # 1. Фильтруем, убирая пустые логи стартового экрана
+            {
+                "$match": {"params": {"$ne": {}}}
+            },
+            # 2. Сортируем по времени (от новых к старым), чтобы $first взял самую свежую запись
+            {
+                "$sort": {"timestamp": -1}
+            },
+            # 3. Группируем по параметрам поиска (убираем дубликаты)
+            {
+                "$group": {
+                    "_id": "$params",  # Группировка по уникальному набору фильтров
+                    "latest_timestamp": {"$first": "$timestamp"},  # Берем самое свежее время
+                    "search_type": {"$first": "$search_type"},
+                    "results_count": {"$first": "$results_count"}
+                }
+            },
+            # 4. Снова сортируем уже уникальные результаты по времени
+            {
+                "$sort": {"latest_timestamp": -1}
+            },
+            # 5. Ограничиваем выборку пятью строками
+            {
+                "$limit": 5
+            }
+        ]
+
+        cursor = collection.aggregate(pipeline)
 
         last_searches = []
         for index, item in enumerate(cursor, start=1):
-            # Переводим UTC-время в читаемый локальный формат строки (Часы:Минуты День.Месяц)
-            # .astimezone() без аргументов автоматически переведет UTC-время из базы в локальное время
-            utc_time = item["timestamp"]
+            utc_time = item["latest_timestamp"]
 
-            # 1. Явно говорим Python, что это время в UTC
+            # Конвертируем UTC-время из MongoDB в локальное время вашего ПК
             if utc_time.tzinfo is None:
                 utc_time = utc_time.replace(tzinfo=timezone.utc)
-            # 2. Конвертируем в локальный часовой пояс вашего компьютера (.astimezone(None))
             local_time = utc_time.astimezone(None)
-            # 3. Форматируем для таблицы
             formatted_time = local_time.strftime("%H:%M %d.%m.%Y")
 
-            # Собираем текстовое описание параметров, чтобы вывести в таблицу
-            p = item.get("params", {})
+            # Формируем красивую текстовую строку параметров
+            p = item["_id"]  # В агрегации сгруппированные параметры лежат в поле _id
             param_parts = []
-            if "search_word" in p: param_parts.append(f"Текст: '{p['search_word']}'")
-            if "category" in p: param_parts.append(f"Жанр: {p['category']}")
-            if "year" in p: param_parts.append(f"Год: {p['year']}")
+            if "search_word" in p and p['search_word']: param_parts.append(f"Текст: '{p['search_word']}'")
+            if "category" in p and p['category']: param_parts.append(f"Жанр: {p['category']}")
+            if "year" in p and p['year']: param_parts.append(f"Год: {p['year']}")
 
-            params_str = ", ".join(param_parts) if param_parts else "Пустой поиск"
+            params_str = ", ".join(param_parts) if param_parts else "Глобальный поиск"
 
             last_searches.append({
-                "index": index,
                 "time": formatted_time,
                 "type": item.get("search_type", "mixed"),
                 "params": params_str,

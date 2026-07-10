@@ -39,6 +39,9 @@ def index_page():
     year_from = request.args.get('year_from', '').strip()
     year_to = request.args.get('year_to', '').strip()
 
+    # Проверяем, поступил ли маркер отправки из HTML - пользователь нажал кнопку "Искать" с пустыми фильтрами
+    form_submitted = request.args.get('search_submitted', '') == '1'
+
     # ПАГИНАЦИЯ: Получаем текущую страницу из URL (например, ?page=2)
     page = request.args.get('page', '1')
     page = int(page) if page.isdigit() else 1
@@ -59,9 +62,10 @@ def index_page():
     # --- ЗАМЕР ВРЕМЕНИ ДЛЯ MYSQL ---
     start_mysql = time.time()
 
-    # Проверяем, был ли выполнен поиск (хотя бы один фильтр заполнен)
-    if s_word or cat or yr_from or yr_to:
+    # ЕСЛИ ПОЛЬЗОВАТЕЛЬ НАЖАЛ КНОПКУ "ИСКАТЬ"
+    if form_submitted:
         is_searched = True
+        # База данных сама поймет, что если cat=None (Все жанры), нужно искать по всей базе!
         # Передаем yr_from и yr_to в get_movies
         movies, total_movies = get_movies(
             search_word=s_word, category=cat,
@@ -72,24 +76,25 @@ def index_page():
         # Логируем только первую страницу нового запроса
         if page == 1:
             start_mongo_write = time.time()
-            # Внутри backend/app.py, для обобщения статистики, переводим в нижний регистр перед отправкой в MongoDB:
-            s_word_lower = s_word.lower() if s_word else None
-
             # Для MongoDB лога объединяем диапазон лет в понятную структуру параметров
             # чтобы в логах было явно видно, что искали именно диапазон
-            write_search_log(search_word=s_word_lower, category=cat,
+            # Внутри backend/app.py, для обобщения статистики, переводим в нижний регистр перед отправкой в MongoDB:
+            write_search_log(search_word=s_word.lower() if s_word else None, category=cat,
                              year=f"{year_from}-{year_to}" if (year_from or year_to) else None,
                              results_count=total_movies)
+
             # --- ЗАМЕР ВРЕМЕНИ ДЛЯ MONGODB (ЗАПИСЬ) ---
             print(f"[⏱️ TIME] MongoDB запись заняла: {time.time() - start_mongo_write:.2f} сек.")
             app_logger.info(
                 f"Выполнен новый поиск: текст='{s_word}', жанр='{cat}', диапазон={yr_from}-{yr_to}. Найдено: {total_movies}")
+
+    # ЕСЛИ ПОЛЬЗОВАТЕЛЬ ТОЛЬКО ЧТО ЗАШЕЛ НА САЙТ (ПЕРВЫЙ КЛИК)
     else:
         print("[MongoDB] Пропуск логирования: переход по страницам существующего запроса.")
-
         is_searched = False
-        # Если поиска не было, отображаются 10 базовых фильмов без логирования.
-        movies, total_movies = get_movies(limit=limit, offset=offset)
+        # Если поиска не было, отображаются 10 базовых фильмов категории "New" на стартовом экране без логирования.
+        movies, total_movies = get_movies(category="New", limit=limit, offset=offset)
+        app_logger.debug("Стартовый экран: загружена категория 'New' (Новинки проката)")
 
     print(f"[⏱️ TIME] Общая работа MySQL заняла: {time.time() - start_mysql:.2f} \n")
     # Высчитываем общее количество страниц (например, 85 фильмов / 10 = 8.5 -> 9 страниц)
