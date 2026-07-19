@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, Query
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from log_decorator import async_log_search
 
 # Импортируем наши готовые СИНХРОННЫЕ модули без изменений
 from mysql_connector import get_movies, get_all_categories, get_year_bounds
@@ -26,7 +27,7 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 # ТРЮК-ПЕРЕВОДЧИК: Перенаправляем аргумент 'filename' во внутренний 'path' для FastAPI
 # Это позволит использовать один и тот же index.html и во Flask, и в FastAPI!
-# НАДЕЖНЫЙ ПЕРЕВОДЧИК СИHТАКСИСА:
+# НАДЕЖНЫЙ ПЕРЕВОДЧИК СИНТАКСИСА:
 @pass_context
 def fastapi_url_for(context: dict, name: str, **path_params):
     """
@@ -65,15 +66,17 @@ templates.env.globals['url_for'] = fastapi_url_for
 
 
 @app.get("/", response_class=HTMLResponse)
-def index_page(
-        request: Request,
-        search_submitted: str = Query(None),
-        search_word: str = Query(""),
-        category: str = Query(""),
-        year_from: str = Query(""),
-        year_to: str = Query(""),
-        page: int = Query(1)
+async def index_page(
+    request: Request,
+    search_submitted: str = Query(None),
+    search_word: str = Query(""),
+    category: str = Query(""),
+    year_from: str = Query(""),
+    year_to: str = Query(""),
+    page: int = Query(1)
 ):
+    #ДЕТАЛЬНЫЙ ТЕКСТОВЫЙ ЛОГ ЗАПРОСА С ПАРАМЕТРАМИ URL
+    app_logger.debug(f"Получен GET-запрос к главной странице. Параметры URL: {dict(request.args if hasattr(request, 'args') else request.query_params)}")
     """
     Синхронный роут главной страницы в FastAPI.
     Использует старые коннекторы бэкенда.
@@ -98,23 +101,28 @@ def index_page(
     start_mysql = time.time()
 
     # Логика выбора фильмов (Новинки или Поиск)
+    # Оборачиваем синхронную функцию get_movies в асинхронный декоратор "на лету"
+    decorated_get_movies = async_log_search()(get_movies)
+
     if search_submitted == '1':
         is_searched = True
-        movies, total_movies = get_movies(
+        # ПЕРЕДАЕМ АБСОЛЮТНО ВСЕ ПАРАМЕТРЫ, ВКЛЮЧАЯ МАРКЕР ОТПРАВКИ FORM_SUBMITTED
+        movies, total_movies = await decorated_get_movies(
+            search_submitted=search_submitted,
             search_word=s_word, category=cat,
             year_from=yr_from, year_to=yr_to,
             limit=limit, offset=offset
         )
         if page == 1:
-            write_search_log(
-                search_word=s_word.lower() if s_word else None,
-                category=cat,
-                year=f"{year_from}-{year_to}" if (year_from or year_to) else None,
-                results_count=total_movies
-            )
+            app_logger.info(f"Выполнен новый поиск: текст='{s_word}', жанр='{cat}', диапазон={yr_from}-{yr_to}. Найдено: {total_movies}")
     else:
         is_searched = False
-        movies, total_movies = get_movies(category="New", limit=limit, offset=offset)
+        # ПРИ СТАРТЕ САЙТА ПЕРЕДАЕМ search_submitted=None, ЧТОБЫ ДЕКОРАТОР НЕ ПИСАЛ ЛОГ
+        movies, total_movies = await decorated_get_movies(
+            search_submitted=None,
+            category="New", limit=limit, offset=offset
+        )
+        app_logger.debug("Стартовый экран: загружена категория 'New' (Новинки проката)")
 
     app_logger.info(f"[FastAPI] MySQL работа заняла: {time.time() - start_mysql:.2f} сек.")
     total_pages = math.ceil(total_movies / limit) if total_movies > 0 else 1
@@ -125,6 +133,7 @@ def index_page(
         request,             # Передаем request первым аргументом БЕЗ ключа
         "index.html",        # Имя шаблона вторым аргументом
         {                    # Словарь данных (контекст) третьим аргументом
+            "request": request,
             "movies": movies,
             "search_word": search_word,
             "category": category,
