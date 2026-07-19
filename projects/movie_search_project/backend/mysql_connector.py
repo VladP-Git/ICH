@@ -99,7 +99,9 @@ def get_movies(search_word=None, category=None, year_from=None, year_to=None, li
 
     # --- ЗАПРОС 2: Получаем сами 10 фильмов ---
     movies_query = f"""
-        SELECT DISTINCT f.film_id, f.title, f.description, f.release_year, f.length, c.name AS category_name
+        SELECT DISTINCT
+            f.film_id, f.title, f.description, f.release_year, f.length, c.name AS category_name,
+            f.rating, f.special_features, f.rental_duration, f.rental_rate
         FROM film f
         JOIN film_category fc ON f.film_id = fc.film_id
         JOIN category c ON fc.category_id = c.category_id

@@ -95,12 +95,17 @@ def index_page():
         # Если поиска не было, отображаются 10 базовых фильмов категории "New" на стартовом экране без логирования.
         movies, total_movies = get_movies(category="New", limit=limit, offset=offset)
         app_logger.debug("Стартовый экран: загружена категория 'New' (Новинки проката)")
+        print(type(movies[0]["special_features"]))
+        print(movies[0]["special_features"])
 
     print(f"[⏱️ TIME] Общая работа MySQL заняла: {time.time() - start_mysql:.2f} \n")
     # Высчитываем общее количество страниц (например, 85 фильмов / 10 = 8.5 -> 9 страниц)
 
     total_pages = math.ceil(total_movies / limit) if total_movies > 0 else 1
 
+
+    # print(type(movies[0]["special_features"]))
+    # print(movies[0]["special_features"])
     # Передаем данные в HTML-шаблон Jinja2
     return render_template(
         'index.html',
@@ -117,7 +122,8 @@ def index_page():
         total_pages=total_pages,  # Передаем общее число страниц
         total_movies=total_movies  # Передаем общее число найденных фильмов
     )
-
+    # Pfukeirf
+    # return "INDEX WORKS"
 
 @app.route('/stats')
 def stats_page():
