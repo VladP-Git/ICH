@@ -90,6 +90,8 @@ movie\_search\_project/
 # Алгоритм запуска:
 1. Запуск сервера в PyCharm:
     В терминале PyCharm (должен присутствовать префикс (.venv)) нужно ввести команду запуска главного файла:
+    python backend/app_fastapi.py
+    либо:
     python backend/app.py
 
 2. Открытие ссылки:
