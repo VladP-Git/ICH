@@ -94,104 +94,118 @@
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% if movies %}
             {% for movie in movies %}
-            <div class="col">
-                <!-- Делаем карточку кликабельной кнопкой, привязанной к уникальному ID модального окна -->
-                <div class="card h-100 shadow-sm transition-hover border-0 rounded-3 position-relative"
-                     style="cursor: pointer;"
-                     data-bs-toggle="modal"
-                     data-bs-target="#movieModal{{ movie.film_id }}">
-
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h5 class="card-title text-truncate mb-0" title="{{ movie.title }}">{{ movie.title }}</h5>
-                            <span class="badge bg-primary">{{ movie.category_name }}</span>
+                <div class="col">
+                    <!-- Делаем карточку кликабельной кнопкой, привязанной к уникальному ID модального окна -->
+                    <div class="card h-100 shadow-sm transition-hover border-0 rounded-3 position-relative"
+                         style="cursor: pointer;"
+                         data-bs-toggle="modal"
+                         data-bs-target="#movieModal{{ movie.film_id }}{{ movie.category_name }}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title text-truncate mb-0"
+                                    title="{{ movie.title }}">{{ movie.title }}</h5>
+                                <span class="badge bg-primary">{{ movie.category_name }}</span>
+                            </div>
+                            <p class="card-text text-muted small">{{ movie.description }}</p>
                         </div>
-                        <p class="card-text text-muted small">{{ movie.description }}</p>
-                    </div>
-                    <div class="card-footer bg-transparent border-0 d-flex justify-content-between align-items-center pb-3">
-                        <span class="text-secondary small"><i class="bi bi-calendar3 me-1"></i> {{ movie.release_year }}</span>
-                        <span class="text-secondary small"><i class="bi bi-clock me-1"></i> {{ movie.length }} мин.</span>
+                        <div class="card-footer bg-transparent border-0 d-flex justify-content-between align-items-center pb-3">
+                            <span class="text-secondary small"><i
+                                    class="bi bi-calendar3 me-1"></i> {{ movie.release_year }}</span>
+                            <span class="text-secondary small"><i class="bi bi-clock me-1"></i> {{ movie.length }} мин.</span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- БУТСТРАП МОДАЛЬНОЕ ОКНО ДЛЯ ТЕКУЩЕГО ФИЛЬМА -->
-            <div class="modal fade" id="movieModal{{ movie.film_id }}" tabindex="-1" aria-labelledby="modalLabel{{ movie.film_id }}" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered modal-lg">
-                    <div class="modal-content border-0 shadow-lg rounded-4">
+                <!-- БУТСТРАП МОДАЛЬНОЕ ОКНО ДЛЯ ТЕКУЩЕГО ФИЛЬМА -->
+                <div class="modal fade" id="movieModal{{ movie.film_id }}{{ movie.category_name }}" tabindex="-1"
+                     aria-labelledby="modalLabel{{ movie.film_id }}{{ movie.category_name }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content border-0 shadow-lg rounded-4">
 
-                        <!-- Шапка окна -->
-                        <div class="modal-header bg-dark text-white rounded-top-4 py-3">
-                            <h5 class="modal-title fw-bold" id="modalLabel{{ movie.film_id }}">
-                                <i class="bi bi-film me-2 text-warning"></i>{{ movie.title }}
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-                        </div>
-
-                        <!-- Тело окна с расширенными параметрами -->
-                        <div class="modal-body p-4">
-                            <p class="lead text-dark mb-4 border-start border-primary border-4 ps-3 py-1">
-                                {{ movie.description }}
-                            </p>
-
-                            <div class="row g-3">
-                                <!-- Колонка 1 -->
-                                <div class="col-sm-6">
-                                    <ul class="list-group list-group-flush">
-                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                            <span class="text-muted"><i class="bi bi-tags me-2"></i>Жанр:</span>
-                                            <span class="fw-semibold text-primary">{{ movie.category_name }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                            <span class="text-muted"><i class="bi bi-calendar-event me-2"></i>Год выпуска:</span>
-                                            <span class="fw-semibold">{{ movie.release_year }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                            <span class="text-muted"><i class="bi bi-hourglass-split me-2"></i>Длительность:</span>
-                                            <span class="fw-semibold">{{ movie.length }} мин.</span>
-                                        </li>
-                                    </ul>
-                                </div>
-                                <!-- Колонка 2 (Расширенные данные из MySQL) -->
-                                <div class="col-sm-6">
-                                    <ul class="list-group list-group-flush">
-                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                            <span class="text-muted"><i class="bi bi-shield-exclamation me-2"></i>Возрастной ценз:</span>
-                                            <span class="badge bg-danger fs-6">{{ movie.rating }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                            <span class="text-muted"><i class="bi bi-currency-dollar me-2"></i>Цена аренды:</span>
-                                            <span class="fw-bold text-success">${{ movie.rental_rate }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                            <span class="text-muted"><i class="bi bi-stopwatch me-2"></i>Срок проката:</span>
-                                            <span class="fw-semibold">{{ movie.rental_duration }} дн.</span>
-                                        </li>
-                                    </ul>
-                                </div>
+                            <!-- Шапка окна -->
+                            <div class="modal-header bg-dark text-white rounded-top-4 py-3">
+                                <h5 class="modal-title fw-bold" id="modalLabel{{ movie.film_id }}{{ movie.category_name }}">
+                                    <i class="bi bi-film me-2 text-warning"></i>{{ movie.title }}
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                        aria-label="Закрыть"></button>
                             </div>
 
-                            <!-- Специальные фичи фильма -->
-                            {% if movie.special_features %}
-                            <div class="mt-4 bg-light p-3 rounded-3 border">
-                                <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-star-fill me-2 text-warning"></i>В комплекте (Special Features):</h6>
-                                <div class="d-flex flex-wrap gap-2">
-                                    {% for feature in movie.special_features %}
-                                        <span class="badge bg-secondary px-3 py-2 fs-7">{{ feature }}</span>
-                                    {% endfor %}
+                            <!-- Тело окна с расширенными параметрами -->
+                            <div class="modal-body p-4">
+                                <p class="lead text-dark mb-4 border-start border-primary border-4 ps-3 py-1">
+                                    {{ movie.description }}
+                                </p>
+
+                                <div class="row g-3">
+                                    <!-- Колонка 1 -->
+                                    <div class="col-sm-6">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                                <span class="text-muted"><i class="bi bi-tags me-2"></i>Жанр:</span>
+                                                <span class="fw-semibold text-primary">{{ movie.category_name }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                                <span class="text-muted"><i class="bi bi-calendar-event me-2"></i>Год выпуска:</span>
+                                                <span class="fw-semibold">{{ movie.release_year }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                                <span class="text-muted"><i class="bi bi-hourglass-split me-2"></i>Длительность:</span>
+                                                <span class="fw-semibold">{{ movie.length }} мин.</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- Колонка 2 (Расширенные данные из MySQL) -->
+                                    <div class="col-sm-6">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                                <span class="text-muted"><i class="bi bi-shield-exclamation me-2"></i>Возрастной ценз:</span>
+                                                <span class="badge bg-danger fs-6">{{ movie.rating }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                                <span class="text-muted"><i class="bi bi-currency-dollar me-2"></i>Цена аренды:</span>
+                                                <span class="fw-bold text-success">${{ movie.rental_rate }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                                <span class="text-muted"><i class="bi bi-stopwatch me-2"></i>Срок проката:</span>
+                                                <span class="fw-semibold">{{ movie.rental_duration }} дн.</span>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
+
+                                <!-- Специальные фичи фильма -->
+                                {% if movie.special_features %}
+                                    <div class="mt-4 bg-light p-3 rounded-3 border">
+                                        <h6 class="fw-bold text-secondary mb-2"><i
+                                                class="bi bi-star-fill me-2 text-warning"></i>В комплекте (Special
+                                            Features):</h6>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <!-- Проверяем: если это строка, делим через .split(','), если множество - перебираем напрямую -->
+                                            {% if movie.special_features is string %}
+                                                {% for feature in movie.special_features.split(',') %}
+                                                    <span class="badge bg-secondary px-3 py-2 fs-7">{{ feature.strip() }}</span>
+                                                {% endfor %}
+                                            {% else %}
+                                                {% for feature in movie.special_features %}
+                                                    <span class="badge bg-secondary px-3 py-2 fs-7">{{ feature }}</span>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endif %}
                             </div>
-                            {% endif %}
-                        </div>
 
-                        <!-- Подвал окна -->
-                        <div class="modal-footer border-0 bg-light rounded-bottom-4 py-2">
-                            <button type="button" class="btn btn-secondary fw-semibold px-4" data-bs-dismiss="modal">Закрыть</button>
-                        </div>
+                            <!-- Подвал окна -->
+                            <div class="modal-footer border-0 bg-light rounded-bottom-4 py-2">
+                                <button type="button" class="btn btn-secondary fw-semibold px-4"
+                                        data-bs-dismiss="modal">Закрыть
+                                </button>
+                            </div>
 
+                        </div>
                     </div>
                 </div>
-            </div>
             {% endfor %}
         {% else %}
             <div class="col-12 text-center my-5">

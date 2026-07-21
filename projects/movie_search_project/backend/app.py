@@ -103,7 +103,6 @@ def index_page():
 
     total_pages = math.ceil(total_movies / limit) if total_movies > 0 else 1
 
-
     # print(type(movies[0]["special_features"]))
     # print(movies[0]["special_features"])
     # Передаем данные в HTML-шаблон Jinja2
@@ -122,8 +121,9 @@ def index_page():
         total_pages=total_pages,  # Передаем общее число страниц
         total_movies=total_movies  # Передаем общее число найденных фильмов
     )
-    # Pfukeirf
+    # Заглушка
     # return "INDEX WORKS"
+
 
 @app.route('/stats')
 def stats_page():

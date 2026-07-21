@@ -15,15 +15,13 @@ def async_log_search():
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
-            # МЯГКО ИЗВЛЕКАЕМ МАРКЕР И УДАЛЯЕМ ЕГО ИЗ KWARGS, ЧТОБЫ НЕ СЛОМАТЬ MYSQL
+            # Извлекаем и удаляем маркер поиска, чтобы не сломать MySQL
             search_submitted = kwargs.pop('search_submitted', None)
 
-            # Теперь kwargs чист от лишних параметров и содержит только то, что ждет get_movies!
-            if not asyncio.iscoroutinefunction(func):
-                loop = asyncio.get_running_loop()
-                result = await loop.run_in_executor(None, functools.partial(func, *args, **kwargs))
-            else:
-                result = await func(*args, **kwargs)
+            # --- ОЧИСТКА ОТ КОСТЫЛЕЙ: Теперь функция всегда асинхронная! ---
+            # Больше никаких run_in_executor и проверок iscoroutinefunction.
+            # Просто вызываем и ждем результат через await в едином потоке
+            result = await func(*args, **kwargs)
 
             movies, total_movies = result if isinstance(result, tuple) else ([], 0)
 
@@ -31,7 +29,7 @@ def async_log_search():
             offset = kwargs.get('offset', 0)
             current_page = (offset // limit) + 1
 
-            # ЛОГИРУЕМ НА ОСHОВЕ ИЗВЛЕЧЕНHОГО МАРКЕРА
+            # Логируем строго при нажатии кнопки "Искать" на первой странице
             if search_submitted == '1' and current_page == 1:
                 search_word = kwargs.get('search_word')
                 category = kwargs.get('category')

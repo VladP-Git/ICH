@@ -7,10 +7,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from log_decorator import async_log_search
-
-# Импортируем наши готовые СИНХРОННЫЕ модули без изменений
-from mysql_connector import get_movies, get_all_categories, get_year_bounds
-from log_writer import write_search_log
+from mysql_async_connector import get_movies_async, get_all_categories_async, get_year_bounds_async
+from fastapi import Response  # Добавьте импорт в самый верх app_fastapi.py
 from log_stats import get_top_5_searches, get_last_5_searches
 from logger_config import app_logger
 
@@ -25,6 +23,8 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 
 # Настраиваем шаблонизатор Jinja2
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+
 # ТРЮК-ПЕРЕВОДЧИК: Перенаправляем аргумент 'filename' во внутренний 'path' для FastAPI
 # Это позволит использовать один и тот же index.html и во Flask, и в FastAPI!
 # НАДЕЖНЫЙ ПЕРЕВОДЧИК СИНТАКСИСА:
@@ -67,16 +67,17 @@ templates.env.globals['url_for'] = fastapi_url_for
 
 @app.get("/", response_class=HTMLResponse)
 async def index_page(
-    request: Request,
-    search_submitted: str = Query(None),
-    search_word: str = Query(""),
-    category: str = Query(""),
-    year_from: str = Query(""),
-    year_to: str = Query(""),
-    page: int = Query(1)
+        request: Request,
+        search_submitted: str = Query(None),
+        search_word: str = Query(""),
+        category: str = Query(""),
+        year_from: str = Query(""),
+        year_to: str = Query(""),
+        page: int = Query(1)
 ):
-    #ДЕТАЛЬНЫЙ ТЕКСТОВЫЙ ЛОГ ЗАПРОСА С ПАРАМЕТРАМИ URL
-    app_logger.debug(f"Получен GET-запрос к главной странице. Параметры URL: {dict(request.args if hasattr(request, 'args') else request.query_params)}")
+    # ДЕТАЛЬНЫЙ ТЕКСТОВЫЙ ЛОГ ЗАПРОСА С ПАРАМЕТРАМИ URL
+    app_logger.debug(
+        f"Получен GET-запрос к главной странице. Параметры URL: {dict(request.args if hasattr(request, 'args') else request.query_params)}")
     """
     Синхронный роут главной страницы в FastAPI.
     Использует старые коннекторы бэкенда.
@@ -95,26 +96,36 @@ async def index_page(
     yr_from = int(year_from) if year_from and year_from.isdigit() else None
     yr_to = int(year_to) if year_to and year_to.isdigit() else None
 
-    categories = get_all_categories()
-    min_db_year, max_db_year = get_year_bounds()
+    categories = await get_all_categories_async()
+    min_db_year, max_db_year = await get_year_bounds_async()
 
     start_mysql = time.time()
 
     # Логика выбора фильмов (Новинки или Поиск)
-    # Оборачиваем синхронную функцию get_movies в асинхронный декоратор "на лету"
-    decorated_get_movies = async_log_search()(get_movies)
+    # Навешиваем декоратор на новую асинхронную функцию
+    decorated_get_movies = async_log_search()(get_movies_async)
 
     if search_submitted == '1':
         is_searched = True
-        # ПЕРЕДАЕМ АБСОЛЮТНО ВСЕ ПАРАМЕТРЫ, ВКЛЮЧАЯ МАРКЕР ОТПРАВКИ FORM_SUBMITTED
+
+        # Запрашиваем порцию фильмов через await
         movies, total_movies = await decorated_get_movies(
             search_submitted=search_submitted,
             search_word=s_word, category=cat,
             year_from=yr_from, year_to=yr_to,
             limit=limit, offset=offset
         )
+
+        # ВЫВОД ОДНОЗНАЧНЫХ СООБЩЕНИЙ В ЗАВИСИМОСТИ ОТ СТРАНИЦЫ
         if page == 1:
-            app_logger.info(f"Выполнен новый поиск: текст='{s_word}', жанр='{cat}', диапазон={yr_from}-{yr_to}. Найдено: {total_movies}")
+            app_logger.info(
+                f"Выполнен новый поиск: текст='{s_word}', жанр='{cat}', диапазон={yr_from}-{yr_to}. Найдено: {total_movies}")
+        else:
+            # Однозначно пишем в лог, что пользователь просто листает страницы
+            app_logger.info(f"[Пагинация] Переход на страницу #{page} для текущего поиска (текст='{s_word}')")
+            # На всякий случай дублируем старый добрый консольный вывод для вас:
+            print(f"[MongoDB] Пропуск логирования: переход по страницам существующего запроса (Страница #{page}).")
+
     else:
         is_searched = False
         # ПРИ СТАРТЕ САЙТА ПЕРЕДАЕМ search_submitted=None, ЧТОБЫ ДЕКОРАТОР НЕ ПИСАЛ ЛОГ
@@ -122,7 +133,13 @@ async def index_page(
             search_submitted=None,
             category="New", limit=limit, offset=offset
         )
-        app_logger.debug("Стартовый экран: загружена категория 'New' (Новинки проката)")
+        if page == 1:
+            app_logger.debug("Стартовый экран: загружена категория 'New' (Новинки проката)")
+        else:
+            app_logger.info(f"[Пагинация] Просмотр страницы #{page} новинок проката")
+
+    # Выводим точный замер времени работы асинхронного пула MySQL
+    app_logger.info(f"[TIME] Общая работа MySQL заняла: {time.time() - start_mysql:.2f} сек.")
 
     app_logger.info(f"[FastAPI] MySQL работа заняла: {time.time() - start_mysql:.2f} сек.")
     total_pages = math.ceil(total_movies / limit) if total_movies > 0 else 1
@@ -130,9 +147,9 @@ async def index_page(
     # В FastAPI переменная request ОБЯЗАТЕЛЬНО должна передаваться в контекст Jinja2
     # Новый синтаксис FastAPI / Starlette
     return templates.TemplateResponse(
-        request,             # Передаем request первым аргументом БЕЗ ключа
-        "index.html",        # Имя шаблона вторым аргументом
-        {                    # Словарь данных (контекст) третьим аргументом
+        request,  # Передаем request первым аргументом БЕЗ ключа
+        "index.html",  # Имя шаблона вторым аргументом
+        {  # Словарь данных (контекст) третьим аргументом
             "request": request,
             "movies": movies,
             "search_word": search_word,
@@ -167,6 +184,12 @@ def stats_page(request: Request):
             "last_searches": last_searches
         }
     )
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """Глушит автоматические запросы браузера к иконке, убирая ошибку 404 из консоли."""
+    return Response(status_code=204)
 
 
 if __name__ == "__main__":
