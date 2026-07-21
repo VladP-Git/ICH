@@ -1,6 +1,6 @@
 import aiomysql
-from typing import Optional
 from local_settings import dbconfig
+from typing import Optional
 
 # Глобальная переменная для хранения пула соединений
 _pool: Optional[aiomysql.Pool] = None

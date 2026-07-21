@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from log_decorator import async_log_search
-from mysql_async_connector import get_movies_async, get_all_categories_async, get_year_bounds_async
+from mysql_connector import get_movies_async, get_all_categories_async, get_year_bounds_async
 from fastapi import Response  # Добавьте импорт в самый верх app_fastapi.py
 from log_stats import get_top_5_searches, get_last_5_searches
 from logger_config import app_logger
@@ -196,4 +196,4 @@ if __name__ == "__main__":
     import uvicorn
 
     # Запуск асинхронного сервера Uvicorn. Режим reload=True заменяет debug=True во Flask
-    uvicorn.run("app_fastapi:app", host="127.0.0.1", port=5000, reload=True)
+    uvicorn.run("app:app", host="127.0.0.1", port=5000, reload=True)
