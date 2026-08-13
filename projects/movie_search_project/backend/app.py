@@ -11,6 +11,8 @@ from mysql_connector import get_movies_async, get_all_categories_async, get_year
 from fastapi import Response  # Добавьте импорт в самый верх app_fastapi.py
 from log_stats import get_top_5_searches, get_last_5_searches
 from logger_config import app_logger
+from fastapi.responses import FileResponse
+
 
 # Определяем базовую директорию проекта
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -187,9 +189,18 @@ def stats_page(request: Request):
 
 
 @app.get("/favicon.ico", include_in_schema=False)
-def favicon():
-    """Глушит автоматические запросы браузера к иконке, убирая ошибку 404 из консоли."""
-    return Response(status_code=204)
+async def favicon():
+    """
+    Асинхронно возвращает реальный файл фавикона для вкладки браузера.
+    """
+    favicon_path = os.path.join(BASE_DIR, "static", "images", "favicon.svg")
+
+    # Проверяем, существует ли файл физически на диске
+    if os.path.exists(favicon_path):
+        # Отдаем файл с указанием правильного типа данных для SVG-вектора
+        return FileResponse(favicon_path, media_type="image/svg+xml")
+
+    return Response(status_code=204)  # Дефолтный фолбек, если файл потерялся
 
 
 if __name__ == "__main__":
