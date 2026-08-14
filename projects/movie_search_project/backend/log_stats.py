@@ -6,15 +6,13 @@ from local_settings import MONGO_URI, MONGO_COLLECTION_NAME
 
 def get_top_5_searches():
     """
-    Функция агрегации логов из MongoDB.
+    Синхронная функция агрегации логов из MongoDB.
     Возвращает Топ-5 самых популярных поисковых запросов пользователей.
     """
-
     client = None
-
     try:
         # Подключение к локальной БД
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
         db = client['sakila_logs']
         collection = db[MONGO_COLLECTION_NAME]
 
@@ -58,20 +56,21 @@ def get_top_5_searches():
         return top_searches
 
     except PyMongoError as err:
-        print(f"[MongoDB] Ошибка при получении статистики: {err}")
+        print(f"[MongoDB] Ошибка при получении статистики топ-5: {err}")
         return []
     finally:
-        client.close()
+        if client is not None:
+            client.close()
 
 
 def get_last_5_searches():
     """
-    Извлекает 5 последних уникальных поисковых запросов пользователей из MongoDB,
+    Синхронно извлекает 5 последних уникальных поисковых запросов пользователей из MongoDB,
     оставляя только самую свежую запись из повторяющихся.
     """
     client = None
     try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
         db = client['sakila_logs']
         collection = db[MONGO_COLLECTION_NAME]
 
@@ -118,6 +117,7 @@ def get_last_5_searches():
 
             # Формируем красивую текстовую строку параметров
             p = item["_id"]  # В агрегации сгруппированные параметры лежат в поле _id
+
             param_parts = []
             if "search_word" in p and p['search_word']: param_parts.append(f"Текст: '{p['search_word']}'")
             if "category" in p and p['category']: param_parts.append(f"Жанр: {p['category']}")
@@ -144,22 +144,16 @@ def get_last_5_searches():
 
 # Блок для локального тестирования агрегации в консоли PyCharm
 if __name__ == "__main__":
-    print("Тестирование извлечения Топ-5 поисковых запросов из MongoDB...")
+    from tabulate import tabulate
 
-    # Чтобы статистика была более наглядной, запишется несколько разных логов для теста
-    from log_writer import write_search_log
+    print("Тестирование извлечения данных из MongoDB...")
 
-    write_search_log(search_word="dinosaur", results_count=5)
-    write_search_log(search_word="dinosaur", results_count=5)
-    write_search_log(search_word="matrix", results_count=1)
+    # Прямая проверка работы аналитики логов
+    top = get_top_5_searches()
+    last = get_last_5_searches()
 
-    # Вызываем функцию статистики
-    stats = get_top_5_searches()
+    print("\nТоп-5 запросов:")
+    print(tabulate(top, headers="keys", tablefmt="grid") if top else "Данных нет.")
+    print("\nПоследние 5 запросов:")
+    print(tabulate(last, headers="keys", tablefmt="grid") if last else "Данных нет.")
 
-    if stats:
-        from tabulate import tabulate
-
-        print("\nРезультаты агрегации (Топ-5):")
-        print(tabulate(stats, headers="keys", tablefmt="grid"))
-    else:
-        print("Статистика пуста. Добавьте больше логов с заполнением 'search_word'.")

@@ -2,17 +2,16 @@ import os
 import math
 import time
 from jinja2 import pass_context
-from fastapi import FastAPI, Request, Query
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, Query, Response
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from log_decorator import async_log_search
-from mysql_connector import get_movies_async, get_all_categories_async, get_year_bounds_async
-from fastapi import Response  # Добавьте импорт в самый верх app_fastapi.py
+
+# Импортируем синхронные модули
+from log_writer import log_search
+from mysql_connector import get_movies, get_all_categories, get_year_bounds
 from log_stats import get_top_5_searches, get_last_5_searches
 from logger_config import app_logger
-from fastapi.responses import FileResponse
-
 
 # Определяем базовую директорию проекта
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,16 +19,15 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Инициализируем FastAPI
 app = FastAPI(title="Sakila Cinema - FastAPI Edition")
 
-# Подключаем статические файлы (CSS, JS, картинки) по правилам FastAPI
+# Подключаем статические файлы (CSS, JS, картинки)
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # Настраиваем шаблонизатор Jinja2
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
-# ТРЮК-ПЕРЕВОДЧИК: Перенаправляем аргумент 'filename' во внутренний 'path' для FastAPI
+# Flask-наследие: Перенаправляем аргумент 'filename' во внутренний 'path' для FastAPI
 # Это позволит использовать один и тот же index.html и во Flask, и в FastAPI!
-# НАДЕЖНЫЙ ПЕРЕВОДЧИК СИНТАКСИСА:
 @pass_context
 def fastapi_url_for(context: dict, name: str, **path_params):
     """
@@ -63,12 +61,14 @@ def fastapi_url_for(context: dict, name: str, **path_params):
     return request.url_for(name, **path_params)
 
 
+
 # Регистрируем функцию в глобальном окружении шаблонизатора FastAPI
 templates.env.globals['url_for'] = fastapi_url_for
 
 
+# Классический синхронный GET-роут для главной страницы
 @app.get("/", response_class=HTMLResponse)
-async def index_page(
+def index_page(
         request: Request,
         search_submitted: str = Query(None),
         search_word: str = Query(""),
@@ -79,11 +79,8 @@ async def index_page(
 ):
     # ДЕТАЛЬНЫЙ ТЕКСТОВЫЙ ЛОГ ЗАПРОСА С ПАРАМЕТРАМИ URL
     app_logger.debug(
-        f"Получен GET-запрос к главной странице. Параметры URL: {dict(request.args if hasattr(request, 'args') else request.query_params)}")
-    """
-    Синхронный роут главной страницы в FastAPI.
-    Использует старые коннекторы бэкенда.
-    """
+        f"Получен GET-запрос к главной странице. Параметры URL: {dict(request.query_params)}")
+
     # Очищаем строки от пробелов
     search_word = search_word.strip()
     category = category.strip()
@@ -98,40 +95,41 @@ async def index_page(
     yr_from = int(year_from) if year_from and year_from.isdigit() else None
     yr_to = int(year_to) if year_to and year_to.isdigit() else None
 
-    categories = await get_all_categories_async()
-    min_db_year, max_db_year = await get_year_bounds_async()
+    # Вызываем синхронные функции получения метаданных
+    categories = get_all_categories()
+    min_db_year, max_db_year = get_year_bounds()
 
     start_mysql = time.time()
 
-    # Логика выбора фильмов (Новинки или Поиск)
-    # Навешиваем декоратор на новую асинхронную функцию
-    decorated_get_movies = async_log_search()(get_movies_async)
+    # Декорируем функцию поиска (вызывается синхронно)
+    decorated_get_movies = log_search()(get_movies)
 
     if search_submitted == '1':
         is_searched = True
 
-        # Запрашиваем порцию фильмов через await
-        movies, total_movies = await decorated_get_movies(
+        # Запрашиваем порцию фильмов
+        movies, total_movies = decorated_get_movies(
             search_submitted=search_submitted,
             search_word=s_word, category=cat,
             year_from=yr_from, year_to=yr_to,
             limit=limit, offset=offset
         )
 
-        # ВЫВОД ОДНОЗНАЧНЫХ СООБЩЕНИЙ В ЗАВИСИМОСТИ ОТ СТРАНИЦЫ
+        # Вывод сообщений в зависимости от страницы
         if page == 1:
             app_logger.info(
                 f"Выполнен новый поиск: текст='{s_word}', жанр='{cat}', диапазон={yr_from}-{yr_to}. Найдено: {total_movies}")
         else:
-            # Однозначно пишем в лог, что пользователь просто листает страницы
+            # Пишем в лог, что пользователь просто листает страницы
             app_logger.info(f"[Пагинация] Переход на страницу #{page} для текущего поиска (текст='{s_word}')")
-            # На всякий случай дублируем старый добрый консольный вывод для вас:
+            # На всякий случай дублируем консольный вывод:
             print(f"[MongoDB] Пропуск логирования: переход по страницам существующего запроса (Страница #{page}).")
 
     else:
         is_searched = False
         # ПРИ СТАРТЕ САЙТА ПЕРЕДАЕМ search_submitted=None, ЧТОБЫ ДЕКОРАТОР НЕ ПИСАЛ ЛОГ
-        movies, total_movies = await decorated_get_movies(
+
+        movies, total_movies = decorated_get_movies(
             search_submitted=None,
             category="New", limit=limit, offset=offset
         )
@@ -140,18 +138,16 @@ async def index_page(
         else:
             app_logger.info(f"[Пагинация] Просмотр страницы #{page} новинок проката")
 
-    # Выводим точный замер времени работы асинхронного пула MySQL
+    # Выводим точный замер времени работы синхронного пула MySQL
     app_logger.info(f"[TIME] Общая работа MySQL заняла: {time.time() - start_mysql:.2f} сек.")
-
-    app_logger.info(f"[FastAPI] MySQL работа заняла: {time.time() - start_mysql:.2f} сек.")
     total_pages = math.ceil(total_movies / limit) if total_movies > 0 else 1
 
     # В FastAPI переменная request ОБЯЗАТЕЛЬНО должна передаваться в контекст Jinja2
     # Новый синтаксис FastAPI / Starlette
     return templates.TemplateResponse(
-        request,  # Передаем request первым аргументом БЕЗ ключа
-        "index.html",  # Имя шаблона вторым аргументом
-        {  # Словарь данных (контекст) третьим аргументом
+        request,               # Идет самым первым аргументом
+        "index.html",          # Имя шаблона — вторым аргументом
+        {                      # Словарь контекста — третьим аргументом
             "request": request,
             "movies": movies,
             "search_word": search_word,
@@ -169,29 +165,32 @@ async def index_page(
     )
 
 
+# Чистый синхронный роут для страницы статистики
 @app.get("/stats", response_class=HTMLResponse)
 def stats_page(request: Request):
     """
     Синхронный роут страницы статистики в FastAPI.
+    Ничего не блокирует, так как работает в отдельном потоке.
     """
     top_searches = get_top_5_searches()
     last_searches = get_last_5_searches()
 
-    # Новый синтаксис FastAPI / Starlette
     return templates.TemplateResponse(
-        request,
-        "stats.html",
-        {
+        request,               # Идет самым первым аргументом
+        "stats.html",          # Имя шаблона — вторым аргументом
+        {                      # Словарь контекста — третьим аргументом
+            "request": request,
             "top_searches": top_searches,
             "last_searches": last_searches
         }
     )
 
 
+# Синхронный роут отдачи иконки фавикона
 @app.get("/favicon.ico", include_in_schema=False)
-async def favicon():
+def favicon():
     """
-    Асинхронно возвращает реальный файл фавикона для вкладки браузера.
+    Возвращает реальный файл фавикона для вкладки браузера.
     """
     favicon_path = os.path.join(BASE_DIR, "static", "images", "favicon.svg")
 
@@ -203,8 +202,9 @@ async def favicon():
     return Response(status_code=204)  # Дефолтный фолбек, если файл потерялся
 
 
+
 if __name__ == "__main__":
     import uvicorn
 
-    # Запуск асинхронного сервера Uvicorn. Режим reload=True заменяет debug=True во Flask
+    # Запуск сервера Uvicorn. Режим reload=True автоматически подхватывает изменения кода
     uvicorn.run("app:app", host="127.0.0.1", port=5000, reload=True)
