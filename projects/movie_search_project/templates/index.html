@@ -100,12 +100,18 @@
                     <div class="card h-100 shadow-sm transition-hover border-0 rounded-3 position-relative"
                          style="cursor: pointer;"
                          data-bs-toggle="modal"
-                         data-bs-target="#movieModal{{ movie.film_id }}{{ movie.category_name }}">
+                         data-bs-target="#movieModal{{ movie.film_id }}"> <!-- Убрали {{ movie.category_name }} -->
                         <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h5 class="card-title text-truncate mb-0"
-                                    title="{{ movie.title }}">{{ movie.title }}</h5>
-                                <span class="badge bg-primary">{{ movie.category_name }}</span>
+                            <div class="mb-3">
+                                <!-- Название фильма теперь занимает всю верхнюю строчку и не сжимается -->
+                                <h5 class="card-title text-truncate mb-2" title="{{ movie.title }}">{{ movie.title }}</h5>
+
+                                <!-- Блок жанров: перенесен под название, выстраивается гибкими строками (flex-wrap) -->
+                                <div class="d-flex flex-wrap gap-1 align-items-center">
+                                    {% for cat_item in movie.category_name.split(', ') %}
+                                        <span class="badge bg-primary fs-7 shadow-sm">{{ cat_item }}</span>
+                                    {% endfor %}
+                                </div>
                             </div>
                             <p class="card-text text-muted small">{{ movie.description }}</p>
                         </div>
@@ -118,14 +124,14 @@
                 </div>
 
                 <!-- БУТСТРАП МОДАЛЬНОЕ ОКНО ДЛЯ ТЕКУЩЕГО ФИЛЬМА -->
-                <div class="modal fade" id="movieModal{{ movie.film_id }}{{ movie.category_name }}" tabindex="-1"
-                     aria-labelledby="modalLabel{{ movie.film_id }}{{ movie.category_name }}" aria-hidden="true">
+                <div class="modal fade" id="movieModal{{ movie.film_id }}" tabindex="-1"
+                     aria-labelledby="modalLabel{{ movie.film_id }}" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-lg">
                         <div class="modal-content border-0 shadow-lg rounded-4">
 
                             <!-- Шапка окна -->
                             <div class="modal-header bg-dark text-white rounded-top-4 py-3">
-                                <h5 class="modal-title fw-bold" id="modalLabel{{ movie.film_id }}{{ movie.category_name }}">
+                                <h5 class="modal-title fw-bold" id="modalLabel{{ movie.film_id }}">
                                     <i class="bi bi-film me-2 text-warning"></i>{{ movie.title }}
                                 </h5>
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
@@ -144,7 +150,11 @@
                                         <ul class="list-group list-group-flush">
                                             <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                                                 <span class="text-muted"><i class="bi bi-tags me-2"></i>Жанр:</span>
-                                                <span class="fw-semibold text-primary">{{ movie.category_name }}</span>
+                                                <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                                    {% for cat_item in movie.category_name.split(', ') %}
+                                                        <span class="badge bg-primary px-2 py-1">{{ cat_item }}</span>
+                                                    {% endfor %}
+                                                </div>
                                             </li>
                                             <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                                                 <span class="text-muted"><i class="bi bi-calendar-event me-2"></i>Год выпуска:</span>

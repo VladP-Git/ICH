@@ -60,64 +60,82 @@ def get_year_bounds():
 
 
 def get_movies(search_word=None, category=None, year_from=None, year_to=None, limit=10, offset=0):
-    """Синхронная функция поиска фильмов. Возвращает (список_фильмов, общее_количество)."""
+    """
+    Синхронная функция поиска фильмов.
+    Группируем все жанры фильма, даже при фильтрации по конкретному жанру.
+    """
     conn = _pool.get_connection()
     cursor = conn.cursor(dictionary=True)
 
+    # В WHERE оставляем только общие фильтры (текст и годы)
     base_where = " WHERE 1=1"
-    params = []
+    params_where = []
 
     if search_word:
         base_where += " AND (f.title LIKE %s OR f.description LIKE %s)"
         search_param = f"%{search_word}%"
-        params.extend([search_param, search_param])
-
-    if category:
-        base_where += " AND c.name = %s"
-        params.append(category)
+        params_where.extend([search_param, search_param])
 
     if year_from:
         base_where += " AND f.release_year >= %s"
-        params.append(int(year_from))
+        params_where.append(int(year_from))
 
     if year_to:
         base_where += " AND f.release_year <= %s"
-        params.append(int(year_to))
+        params_where.append(int(year_to))
+
+    # 1. Запрос подсчета количества (COUNT) с учетом выбранного жанра
+    count_params = params_where.copy()
+    category_condition = ""
+    if category:
+        category_condition = " AND c.name = %s"
+        count_params.append(category)
 
     count_query = f"""
         SELECT COUNT(DISTINCT f.film_id) as total 
         FROM film f
         JOIN film_category fc ON f.film_id = fc.film_id
         JOIN category c ON fc.category_id = c.category_id
-        {base_where}
+        {base_where} {category_condition}
     """
 
+    # 2. Главный запрос: фильтруем сгруппированные жанры через HAVING
+    having_clause = ""
+    params_having = []
+    if category:
+        # Ищем выбранный жанр внутри строки всех жанров фильма
+        having_clause = " HAVING FIND_IN_SET(%s, GROUP_CONCAT(c.name)) > 0"
+        params_having.append(category)
+
     movies_query = f"""
-        SELECT DISTINCT
+        SELECT 
             f.film_id, f.title, f.description, f.release_year, f.length, 
-            c.name AS category_name, f.rating, f.special_features, f.rental_duration, f.rental_rate
+            GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ', ') AS category_name, 
+            f.rating, f.special_features, f.rental_duration, f.rental_rate
         FROM film f
         JOIN film_category fc ON f.film_id = fc.film_id
         JOIN category c ON fc.category_id = c.category_id
         {base_where}
+        GROUP BY f.film_id
+        {having_clause}
         ORDER BY f.title ASC 
         LIMIT %s OFFSET %s
     """
 
     try:
-        # 1. Считаем общее количество подходящих под фильтр фильмов
-        cursor.execute(count_query, params)
+        # 1. Считаем общее количество подходящих под фильтр фильмов - total
+        cursor.execute(count_query, count_params)
         count_res = cursor.fetchone()
         total_count = count_res['total'] if count_res else 0
 
-        # 2. Извлекаем порцию фильмов для текущей страницы пагинации
-        movies_params = params + [limit, offset]
+        # 2. Собираем параметры для основного запроса
+        movies_params = params_where + params_having + [limit, offset]
         cursor.execute(movies_query, movies_params)
         movies = cursor.fetchall()
 
         return movies, total_count
     except Exception as err:
-        print(f"Ошибка синхронного SQL-запроса: {err}")
+        print(f"Ошибка SQL-запроса при группировке жанров: {err}")
         return [], 0
     finally:
         cursor.close()
