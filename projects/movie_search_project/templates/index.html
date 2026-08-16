@@ -13,7 +13,7 @@
     <!-- Кастомные стили сайта -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 </head>
-<body class="bg-light">
+<body class="bg-body-secondary">
 
 <!-- Шапка (Hero-секция) с красивым фоном из Unsplash -->
 <header class="hero-section text-white text-center d-flex align-items-center justify-content-center">
@@ -97,16 +97,16 @@
             {% for movie in movies %}
                 <div class="col">
                     <!-- Делаем карточку кликабельной кнопкой, привязанной к уникальному ID модального окна -->
-                    <div class="card h-100 shadow-sm transition-hover border-0 rounded-3 position-relative"
+                    <div class="card h-100 shadow-sm transition-hover border border-light-subtle rounded-3 position-relative"
                          style="cursor: pointer;"
                          data-bs-toggle="modal"
                          data-bs-target="#movieModal{{ movie.film_id }}"> <!-- Убрали {{ movie.category_name }} -->
                         <div class="card-body">
                             <div class="mb-3">
-                                <!-- Название фильма теперь занимает всю верхнюю строчку и не сжимается -->
-                                <h5 class="card-title text-truncate mb-2" title="{{ movie.title }}">{{ movie.title }}</h5>
+                                <!-- Название фильма занимает всю верхнюю строчку, текст подчеркивается и не сжимается -->
+                                <h5 class="card-title text-truncate mb-2 text-center text-decoration-underline" title="{{ movie.title }}">{{ movie.title }}</h5>
 
-                                <!-- Блок жанров: перенесен под название, выстраивается гибкими строками (flex-wrap) -->
+                                <!-- Блок жанров остается выровненным слева направо -->
                                 <div class="d-flex flex-wrap gap-1 align-items-center">
                                     {% for cat_item in movie.category_name.split(', ') %}
                                         <span class="badge bg-primary fs-7 shadow-sm">{{ cat_item }}</span>
