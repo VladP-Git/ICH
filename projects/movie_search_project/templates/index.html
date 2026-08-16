@@ -97,17 +97,51 @@
         </div>
     {% endif %}
 
+
     <!-- Сетка карточек фильмов (Bootstrap Grid) -->
-    <!-- Этот блок отвечает за заголовок и кнопку статистики -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h4">
+    <!-- Верхняя панель управления: Заголовок (слева) и Блок инструментов (справа) -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mb-4">
+
+        <!-- Левая часть: Заголовок и счетчик -->
+        <h2 class="h4 mb-0">
             {% if is_searched %} Результаты поиска {% else %} Новинки проката {% endif %}
             <span class="badge bg-secondary fs-6">Отображено карточек: {{ movies|length }}</span>
         </h2>
-        <a href="/stats" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-bar-chart-fill me-1"></i> Статистика запросов
-        </a>
+
+        <!-- Правая часть: Объединенный блок инструментов (Режим сетки + Статистика через пробел) -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+
+            <!-- ВЫПАДАЮЩЕЕ МЕНЮ БУТСТРАП -->
+            <div class="dropdown">
+                <button class="btn btn-sm btn-secondary dropdown-toggle px-3 py-1.5 fw-medium shadow-sm" type="button" id="dropdownGridMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>Формат сетки
+                </button>
+                <ul class="dropdown-menu shadow rounded-3 border-0 mt-2" aria-labelledby="dropdownGridMenu">
+                    <li>
+                        <a class="dropdown-menu-item dropdown-item py-2 px-3 d-flex align-items-center justify-content-between {% if view_mode == 'adaptive' %}active{% endif %}"
+                           href="{{ url_for('index_page', search_submitted=(1 if is_searched else None), search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=1, view_mode='adaptive') }}">
+                            <span><i class="bi bi-window-stack me-2"></i>Демонстрационный - по 6-ть фильмов</span>
+                            {% if view_mode == 'adaptive' %}<i class="bi bi-check-lg ms-2"></i>{% endif %}
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-menu-item dropdown-item py-2 px-3 d-flex align-items-center justify-content-between {% if view_mode == 'strict' %}active{% endif %}"
+                           href="{{ url_for('index_page', search_submitted=(1 if is_searched else None), search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=1, view_mode='strict') }}">
+                            <span><i class="bi bi-list-ol me-2"></i>ТЗ - показывать по 10-ть фильмов</span>
+                            {% if view_mode == 'strict' %}<i class="bi bi-check-lg ms-2"></i>{% endif %}
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Кнопка переката на статистику -->
+            <a href="/stats" class="btn btn-outline-secondary btn-sm shadow-sm py-1.5">
+                <i class="bi bi-bar-chart-fill me-1"></i> Статистика запросов
+            </a>
+
+        </div>
     </div>
+
 
     <!-- Сетка карточек фильмов, распределение карточек по 3 в ряд -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
@@ -243,17 +277,23 @@
         {% endif %}
     </div>
 
-    <!-- Секция пагинации (Кнопка "Показать еще" + Цифровое меню) -->
+    <!-- Секция пагинации (Кнопка "Показать еще" + Выпадающее меню + Цифровое меню) -->
     <div class="mt-5">
         {% if total_pages > 1 %}
 
-            <!-- 1. Кнопка "Показать еще" (Выполнение ТЗ) -->
-            <!-- При клике она просто перенаправляет на следующую страницу, сохраняя фильтры -->
-            <div class="text-center mb-4">
+            <!-- 1. Блок управления: Кнопка "Показать еще" + Переключатель сетки -->
+            <div class="d-flex justify-content-center align-items-center gap-2 mb-4 flex-wrap">
                 {% if current_page < total_pages %}
-                    <a href="{{ url_for('index_page', search_submitted=1, search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1) }}"
+                    <!-- Динамическая ссылка кнопки: передаем текущий view_mode -->
+                    <a href="{{ url_for('index_page', search_submitted=(1 if is_searched else None), search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1, view_mode=view_mode) }}"
                        class="btn btn-outline-primary px-4 py-2 fw-bold shadow-sm">
-                        <i class="bi bi-plus-circle me-2"></i>Показать еще 10 фильмов
+                        <i class="bi bi-plus-circle me-2"></i>
+                        <!-- Динамический текст кнопки в зависимости от режима -->
+                        {% if view_mode == 'strict' %}
+                            Показать еще 10 фильмов
+                        {% else %}
+                            Показать следующие карточки
+                        {% endif %}
                     </a>
                 {% else %}
                     <button class="btn btn-outline-secondary px-4 py-2 fw-bold" disabled>
@@ -266,10 +306,10 @@
             <nav aria-label="Навигация по фильмам">
                 <ul class="pagination justify-content-center shadow-sm rounded">
 
-                    <!-- Стрелка "Назад" (Активна, если мы не на первой странице) -->
+                    <!-- Стрелка "Назад" -->
                     <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
-                        <a class="page-line page-link"
-                           href="{{ url_for('index_page', search_submitted=1, search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page - 1) }}"
+                        <a class="page-link"
+                           href="{{ url_for('index_page', search_submitted=(1 if is_searched else None), search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page - 1, view_mode=view_mode) }}"
                            aria-label="Предыдущая">
                             <span aria-hidden="true">&laquo;</span>
                         </a>
@@ -278,32 +318,24 @@
                     <!-- Генерируем цифровые страницы при помощи цикла Jinja2 -->
                     <!-- Создаём динамический ряд кнопок от 1 до максимального числа страниц -->
                     {% for p in range(1, total_pages + 1) %}
-
                         <!-- Логика отображения: первая, последняя или в радиусе 1 шага от текущей -->
                         {% if p == 1 or p == total_pages or (p >= current_page - 1 and p <= current_page + 1) %}
-
                             <li class="page-item {% if current_page == p %}active{% endif %}">
                                 <a class="page-link"
-                                   href="{{ url_for('index_page', search_submitted=1, search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=p) }}">
+                                   href="{{ url_for('index_page', search_submitted=(1 if is_searched else None), search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=p, view_mode=view_mode) }}">
                                     {{ p }}
                                 </a>
                             </li>
-
-                            <!-- Если мы пролетели мимо соседей, но еще не дошли до конца, ставим ОДНО многоточие слева или справа -->
+                        <!-- Если мы пролетели мимо соседей, но еще не дошли до конца, ставим ОДНО многоточие слева или справа -->
                         {% elif p == 2 or p == total_pages - 1 %}
-
-                            <li class="page-item disabled">
-                                <span class="page-link">...</span>
-                            </li>
-
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
                         {% endif %}
-
                     {% endfor %}
 
                     <!-- Стрелка "Вперед" (Активна, если мы не на последней странице) -->
                     <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
                         <a class="page-link"
-                           href="{{ url_for('index_page', search_submitted=1, search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1) }}"
+                           href="{{ url_for('index_page', search_submitted=(1 if is_searched else None), search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1, view_mode=view_mode) }}"
                            aria-label="Следующая">
                             <span aria-hidden="true">&raquo;</span>
                         </a>
@@ -312,7 +344,7 @@
                 </ul>
             </nav>
 
-            <!-- Дополнительная информационная строчка для пользователя -->
+            <!-- Дополнительная информационная строчка -->
             <div class="text-center text-muted small mt-2">
                 Страница {{ current_page }} из {{ total_pages }} (Всего найдено фильмов: {{ total_movies }})
             </div>

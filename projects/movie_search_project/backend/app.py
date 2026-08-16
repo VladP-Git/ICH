@@ -54,6 +54,9 @@ def fastapi_url_for(context: dict, name: str, **path_params):
         from urllib.parse import urlencode
         # Фильтруем пустые значения, чтобы ссылка была чистой
         clean_params = {k: v for k, v in path_params.items() if v is not None and v != ''}
+        # Если view_mode не передан в path_params, берем его из текущего request, чтобы сохранить состояние
+        if 'view_mode' not in clean_params and 'view_mode' in request.query_params:
+            clean_params['view_mode'] = request.query_params['view_mode']
         if clean_params:
             url = f"{url}?{urlencode(clean_params)}"
         return url
@@ -75,19 +78,23 @@ def index_page(
         category: str = Query(""),
         year_from: str = Query(""),
         year_to: str = Query(""),
-        page: int = Query(1)
+        page: int = Query(1),
+        view_mode: str = Query("adaptive")  # Новый параметр: по умолчанию "adaptive"
 ):
     # ДЕТАЛЬНЫЙ ТЕКСТОВЫЙ ЛОГ ЗАПРОСА С ПАРАМЕТРАМИ URL
     app_logger.debug(
         f"Получен GET-запрос к главной странице. Параметры URL: {dict(request.query_params)}")
 
     # Очищаем строки от пробелов
+
     search_word = search_word.strip()
     category = category.strip()
     year_from = year_from.strip()
     year_to = year_to.strip()
 
-    limit = 10
+    # ДИНАМИЧЕСКИЙ РАСЧЕТ ЛИМИТА ИЗ РЕЖИМА ОТОБРАЖЕНИЯ
+    # adaptive = 6 карточек (2 полных ряда по 3), strict = 10 карточек (по ТЗ)
+    limit = 10 if view_mode == "strict" else 6
     offset = (page - 1) * limit
 
     s_word = search_word if search_word else None
@@ -128,6 +135,7 @@ def index_page(
                 app_logger.info(f"[Поиск] Отправлен абсолютно пустой запрос. Отображен базовый каталог.")
             else:
                 app_logger.info(f"[Пагинация] Просмотр страницы #{page} новинок проката")
+
         else:
             # ПОЛНОЦЕННЫЙ ПОИСК (есть текст, ИЛИ выбран жанр, ИЛИ указаны годы)
             is_searched = True
@@ -183,7 +191,9 @@ def index_page(
             "categories": categories,
             "current_page": page,
             "total_pages": total_pages,
-            "total_movies": total_movies
+            "total_movies": total_movies,
+            "view_mode": view_mode,  # ОБЯЗАТЕЛЬНО передаем текущий режим в шаблон
+            "current_limit": limit   # Передаем число для динамического текста на кнопке
         }
     )
 
