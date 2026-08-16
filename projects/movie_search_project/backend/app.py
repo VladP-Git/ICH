@@ -104,31 +104,54 @@ def index_page(
     # Декорируем функцию поиска (вызывается синхронно)
     decorated_get_movies = log_search()(get_movies)
 
+    # Новый маркер для фиксации абсолютно пустого ввода при отправке формы
+    empty_search = False
+
     if search_submitted == '1':
-        is_searched = True
+        # Проверяем, выбрал ли пользователь ХОТЯ БЫ ОДИН критерий для фильтрации
+        has_any_filter = bool(s_word or cat or yr_from or yr_to)
 
-        # Запрашиваем порцию фильмов
-        movies, total_movies = decorated_get_movies(
-            search_submitted=search_submitted,
-            search_word=s_word, category=cat,
-            year_from=yr_from, year_to=yr_to,
-            limit=limit, offset=offset
-        )
+        if not has_any_filter:
+            # Активируем уведомление строго на первой странице, при пагинации оно не появится.
+            # АБСОЛЮТНО ПУСТОЙ ПОИСК (нет текста, нет жанра, нет годов)
+            if page == 1:
+                empty_search = True
 
-        # Вывод сообщений в зависимости от страницы
-        if page == 1:
-            app_logger.info(
-                f"Выполнен новый поиск: текст='{s_word}', жанр='{cat}', диапазон={yr_from}-{yr_to}. Найдено: {total_movies}")
+            is_searched = False
+            # Если пользователь выбрал жанр в селекторе, сохраняем его, иначе сбрасываем на "New"
+            movies, total_movies = decorated_get_movies(
+                search_submitted=None,  # Передаем None, чтобы NoSQL НЕ писал пустой лог
+                category="New", limit=limit, offset=offset
+            )
+
+            if page == 1:
+                app_logger.info(f"[Поиск] Отправлен абсолютно пустой запрос. Отображен базовый каталог.")
+            else:
+                app_logger.info(f"[Пагинация] Просмотр страницы #{page} новинок проката")
         else:
-            # Пишем в лог, что пользователь просто листает страницы
-            app_logger.info(f"[Пагинация] Переход на страницу #{page} для текущего поиска (текст='{s_word}')")
-            # На всякий случай дублируем консольный вывод:
-            print(f"[MongoDB] Пропуск логирования: переход по страницам существующего запроса (Страница #{page}).")
+            # ПОЛНОЦЕННЫЙ ПОИСК (есть текст, ИЛИ выбран жанр, ИЛИ указаны годы)
+            is_searched = True
+
+            # Передаем маркер search_submitted дальше, чтобы декоратор залогировал этот поиск в MongoDB
+            movies, total_movies = decorated_get_movies(
+                search_submitted=search_submitted,
+                search_word=s_word, category=cat,
+                year_from=yr_from, year_to=yr_to,
+                limit=limit, offset=offset
+            )
+
+            # Вывод сообщений в зависимости от страницы
+            if page == 1:
+                app_logger.info(
+                    f"Выполнен поиск по фильтрам: текст='{s_word}', жанр='{cat}', диапазон={yr_from}-{yr_to}. Найдено: {total_movies}")
+            else:
+                # Пишем в лог, что пользователь просто листает страницы
+                app_logger.info(f"[Пагинация] Переход на страницу #{page} для поиска (текст='{s_word}', жанр='{cat}')")
 
     else:
+        # Стартовый экран (Новинки проката)
         is_searched = False
         # ПРИ СТАРТЕ САЙТА ПЕРЕДАЕМ search_submitted=None, ЧТОБЫ ДЕКОРАТОР НЕ ПИСАЛ ЛОГ
-
         movies, total_movies = decorated_get_movies(
             search_submitted=None,
             category="New", limit=limit, offset=offset
@@ -143,11 +166,10 @@ def index_page(
     total_pages = math.ceil(total_movies / limit) if total_movies > 0 else 1
 
     # В FastAPI переменная request ОБЯЗАТЕЛЬНО должна передаваться в контекст Jinja2
-    # Новый синтаксис FastAPI / Starlette
     return templates.TemplateResponse(
-        request,               # Идет самым первым аргументом
-        "index.html",          # Имя шаблона — вторым аргументом
-        {                      # Словарь контекста — третьим аргументом
+        request,  # Идет самым первым аргументом
+        "index.html",  # Имя шаблона — вторым аргументом
+        {  # Словарь контекста — третьим аргументом
             "request": request,
             "movies": movies,
             "search_word": search_word,
@@ -157,12 +179,14 @@ def index_page(
             "min_db_year": min_db_year,
             "max_db_year": max_db_year,
             "is_searched": is_searched,
+            "empty_search": empty_search,  # ПЕРЕДАЕМ МАРКЕР ОШИБКИ В ШАБЛОН JINJA2
             "categories": categories,
             "current_page": page,
             "total_pages": total_pages,
             "total_movies": total_movies
         }
     )
+
 
 
 # Чистый синхронный роут для страницы статистики
