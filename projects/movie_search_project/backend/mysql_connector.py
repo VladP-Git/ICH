@@ -50,10 +50,10 @@ def get_year_bounds():
         res = cursor.fetchone()
         if res and res['min_y'] and res['max_y']:
             return int(res['min_y']), int(res['max_y'])
-        return 1900, 2026
+        return 1890, 2025
     except Exception as err:
         print(f"Ошибка при получении границ годов: {err}")
-        return 1900, 2026
+        return 1890, 2025
     finally:
         cursor.close()
         conn.close()

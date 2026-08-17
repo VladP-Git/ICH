@@ -7,7 +7,6 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-# Импортируем синхронные модули
 from log_writer import log_search
 from mysql_connector import get_movies, get_all_categories, get_year_bounds
 from log_stats import get_top_5_searches, get_last_5_searches
@@ -26,7 +25,7 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
-# Flask-наследие: Перенаправляем аргумент 'filename' во внутренний 'path' для FastAPI
+# Перенаправляем аргумент 'filename' во внутренний 'path' для FastAPI
 # Это позволит использовать один и тот же index.html и во Flask, и в FastAPI!
 @pass_context
 def fastapi_url_for(context: dict, name: str, **path_params):
@@ -34,7 +33,7 @@ def fastapi_url_for(context: dict, name: str, **path_params):
     Универсальный мост синтаксиса.
     Корректирует вызовы url_for из Flask под требования архитектуры FastAPI.
     """
-    # Извлекаем объект request, который FastAPI автоматически прячет внутри контекста шаблона
+    # Извлекаем объект request, инкапсулированный FastAPI внутри контекста шаблона
     request = context["request"]
 
     # 1. Исправление для статических ресурсов (CSS/JS)
@@ -45,6 +44,7 @@ def fastapi_url_for(context: dict, name: str, **path_params):
 
     # 2. Исправление для ссылок пагинации главной страницы
     if name == 'index_page':
+        # Генерируем базовый URL для эндпоинта главной страницы
         # Перенаправляем вызов на имя функции роута внутри FastAPI (это имя 'index_page')
         # В FastAPI параметры Query-поиска передаются через URL, поэтому убираем их из path_params,
         # чтобы они автоматически приклеились как GET-параметры строки
@@ -52,15 +52,17 @@ def fastapi_url_for(context: dict, name: str, **path_params):
 
         # Превращаем параметры в классическую GET-строку (?search_word=...&page=...)
         from urllib.parse import urlencode
-        # Фильтруем пустые значения, чтобы ссылка была чистой
+        # Очищаем GET-параметры от пустых значений для сохранения чистоты URL
         clean_params = {k: v for k, v in path_params.items() if v is not None and v != ''}
         # Если view_mode не передан в path_params, берем его из текущего request, чтобы сохранить состояние
         if 'view_mode' not in clean_params and 'view_mode' in request.query_params:
             clean_params['view_mode'] = request.query_params['view_mode']
+        # Формируем валидную GET-строку (?search_word=...&page=...)
         if clean_params:
             url = f"{url}?{urlencode(clean_params)}"
         return url
 
+    # Для всех остальных роутов (например, /stats) используем стандартный метод Starlette
     return request.url_for(name, **path_params)
 
 

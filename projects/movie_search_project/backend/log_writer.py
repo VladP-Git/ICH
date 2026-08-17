@@ -9,7 +9,6 @@ from logger_config import app_logger
 def log_search():
     """
     Синхронный декоратор для NoSQL-логирования поисковых запросов в MongoDB.
-    (Имя функции сохранено для совместимости с app.py на данном этапе).
     """
 
     def decorator(func):
@@ -46,7 +45,7 @@ def log_search():
                     "results_count": total_movies
                 }
 
-                # Синхронная запись в MongoDB без create_task и await
+                # Синхронная запись в MongoDB
                 client = None
                 try:
                     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)

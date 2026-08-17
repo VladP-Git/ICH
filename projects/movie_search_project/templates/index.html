@@ -99,22 +99,30 @@
 
 
     <!-- Сетка карточек фильмов (Bootstrap Grid) -->
-    <!-- Верхняя панель управления: Заголовок (слева) и Блок инструментов (справа) -->
+    <!-- Этот блок отвечает за заголовок и кнопку статистики -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mb-4">
 
-        <!-- Левая часть: Заголовок и счетчик -->
-        <h2 class="h4 mb-0">
-            {% if is_searched %} Результаты поиска {% else %} Новинки проката {% endif %}
-            <span class="badge bg-secondary fs-6">Отображено карточек: {{ movies|length }}</span>
-        </h2>
+        <!-- Левая часть: Название режима и Счетчик -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- Кнопка-статус для обозначения текущего режима страницы -->
+            <span class="btn btn-sm btn-outline-secondary px-3 py-1.5 fw-bold shadow-sm" style="pointer-events: none;">
+                <i class="bi bi-film me-1"></i>
+                {% if is_searched %} Результаты поиска {% else %} Новинки проката {% endif %}
+            </span>
 
-        <!-- Правая часть: Объединенный блок инструментов (Режим сетки + Статистика через пробел) -->
+            <!-- Кнопка-индикатор количества отображенных карточек -->
+            <span class="btn btn-sm btn-secondary px-3 py-1.5 fw-medium shadow-sm" style="pointer-events: none;">
+                <i class="bi bi-window-stack me-1"></i>&nbsp;&nbsp;Карточек :&nbsp;  <span class="badge bg-white text-dark ms-1">{{ movies|length }}</span>
+            </span>
+        </div>
+
+        <!-- Правая часть: Блок инструментов (Режим сетки + Статистика) -->
         <div class="d-flex align-items-center gap-2 flex-wrap">
 
-            <!-- ВЫПАДАЮЩЕЕ МЕНЮ БУТСТРАП -->
+            <!-- Выпадающее меню выбора режима сетки -->
             <div class="dropdown">
                 <button class="btn btn-sm btn-secondary dropdown-toggle px-3 py-1.5 fw-medium shadow-sm" type="button" id="dropdownGridMenu" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>Формат сетки
+                    <i class="bi bi-grid-3x3-gap-fill me-1"></i>&nbsp;Формат сетки
                 </button>
                 <ul class="dropdown-menu shadow rounded-3 border-0 mt-2" aria-labelledby="dropdownGridMenu">
                     <li>
@@ -134,8 +142,8 @@
                 </ul>
             </div>
 
-            <!-- Кнопка переката на статистику -->
-            <a href="/stats" class="btn btn-outline-secondary btn-sm shadow-sm py-1.5">
+            <!-- Кнопка перехода на страницу статистики -->
+            <a href="/stats" class="btn btn-outline-secondary btn-sm shadow-sm py-1.5 fw-medium">
                 <i class="bi bi-bar-chart-fill me-1"></i> Статистика запросов
             </a>
 
