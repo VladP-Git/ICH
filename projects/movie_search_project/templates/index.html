@@ -17,12 +17,12 @@
 
 <!-- Шапка (Hero-секция) с красивым фоном из Unsplash -->
 <header class="hero-section text-white text-center d-flex align-items-center justify-content-center">
-    <div class="container position-relative z-3">
-        <h1 class="display-4 fw-bold mb-3">Найди свой любимый фильм</h1>
-        <p class="lead mb-4">Учебный проект поиска по базе данных Sakila</p>
+    <div class="container position-relative z-3 py-2"> <!-- Минимальный отступ py-2 -->
+        <h1 class="fs-2 fw-bold mb-0">Найди свой любимый фильм</h1> <!-- Элегантный размер fs-2 вместо display -->
+        <p class="small text-white-50 mb-2">Учебный проект поиска по базе данных Sakila</p>
 
         <!-- Форма поиска -->
-        <form method="GET" action="/" class="row g-2 justify-content-center bg-dark bg-opacity-75 p-4 rounded-4 shadow">
+        <form method="GET" action="/" class="row g-2 justify-content-center bg-dark bg-opacity-75 p-3 rounded-4 shadow">
             <!-- Скрытый маркер для бэкенда, сообщающий, что кнопка "Искать" была нажата -->
             <input type="hidden" name="search_submitted" value="1">
 
@@ -77,8 +77,8 @@
     </div>
 </header>
 
-<!-- Основной контент: Результаты поиска -->
-<main class="container my-5">
+<!-- Основной контент: Результаты поиска (Добавлен ID-якорь для удержания фокуса) -->
+<main class="container my-5" id="movie-section">
 
     <!-- ВСПЛЫВАЮЩЕЕ УВЕДОМЛЕНИЕ ДЛЯ ПУСТОГО ПОИСКА ИЛИ ПРОБЕЛОВ -->
     {% if empty_search %}
@@ -365,20 +365,54 @@
 <!-- Подключаем Bootstrap 5 JS Bundle локально -->
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 
-<!-- Микро-скрипт для идеальной очистки консоли от ARIA-предупреждений -->
+<!-- Скрипты для работы интерфейса: очистка ARIA-предупреждений, валидация фильтров и плавный скролл -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Находим все модальные окна на странице
+        // --- 1. ОЧИСТКА КОНСОЛИ ОТ ARIA-ПРЕДУПРЕЖДЕНИЙ МОДАЛЬНЫХ ОКОН ---
         const modals = document.querySelectorAll('.modal');
         modals.forEach(modal => {
-            // Вешаем событие "перед началом скрытия окна"
             modal.addEventListener('hide.bs.modal', function () {
-                // Если в момент закрытия внутри окна есть сфокусированный элемент (например, крестик)
                 if (modal.contains(document.activeElement)) {
-                    document.activeElement.blur(); // Принудительно снимаем с него фокус
+                    document.activeElement.blur();
                 }
             });
         });
+
+        // --- 2. ДИНАМИЧЕСКАЯ ВАЛИДАЦИЯ ДИАПАЗОНА ГОДОВ (ЗАЩИТА ФОРМЫ) ---
+        const yearFromInput = document.getElementById('year_from_input');
+        const yearToInput = document.getElementById('year_to_input');
+
+        function validateYearRange() {
+            const yearFrom = parseInt(yearFromInput.value, 10);
+            const yearTo = parseInt(yearToInput.value, 10);
+
+            if (yearFrom && yearTo && yearFrom > yearTo) {
+                yearToInput.setCustomValidity(`Значение должно быть больше или равно значению из поля "Год от" (${yearFrom})`);
+            } else {
+                yearToInput.setCustomValidity('');
+            }
+        }
+
+        yearFromInput.addEventListener('input', validateYearRange);
+        yearToInput.addEventListener('input', validateYearRange);
+
+        // --- 3. ПЛАВНЫЙ СКРОЛЛ К ЯКОРЮ ПРИ ПЕРЕЗАГРУЗКЕ СТРАНИЦЫ ---
+        // Если в URL присутствует хэш #movie-section
+        if (window.location.hash === '#movie-section') {
+            const target = document.getElementById('movie-section');
+            if (target) {
+                // Временно запрещаем браузеру прыгать резко (сбрасываем дефолтное поведение)
+                window.scrollTo(0, 0);
+
+                // Используем встроенный нативный метод плавной прокрутки
+                setTimeout(function() {
+                    target.scrollIntoView({
+                        behavior: 'smooth', // Делает анимацию плавной
+                        block: 'start'      // Выравнивает верхнюю границу блока по верху экрана
+                    });
+                }, 100); // Микро-задержка в 50мс, чтобы браузер успел отрисовать сетку карточек
+            }
+        }
     });
 </script>
 

@@ -1,7 +1,12 @@
+/* Включаем поддержку плавной прокрутки на уровне всего документа */
+html {
+    scroll-behavior: smooth;
+}
+
 /* Настройка «живого» фона для Hero-секции */
 .hero-section {
     position: relative;
-    min-height: 40vh;
+    min-height: 20vh; /* Высота уменьшена на треть (с 40vh до 27vh) */
     /* Используем стабильную прямую ссылку на фото в стиле кино из Unsplash */
     background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)),
     url('../images/hero-bg2.jpg');
