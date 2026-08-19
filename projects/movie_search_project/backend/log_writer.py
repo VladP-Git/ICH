@@ -11,7 +11,6 @@ def log_search(func):
     Декоратор для NoSQL-логирования поисковых запросов в MongoDB.
     Убран лишний внешний уровень фабрики функций, декоратор применяется напрямую.
     """
-    # @functools.wraps(func)
     def wrapper(*args, **kwargs):
         # Извлекаем маркер поиска, чтобы исключить его попадание в параметры MySQL
         search_submitted = kwargs.get('search_submitted', None)

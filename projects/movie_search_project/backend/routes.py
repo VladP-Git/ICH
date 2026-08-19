@@ -59,3 +59,17 @@ def favicon():
     if os.path.exists(favicon_path):
         return FileResponse(favicon_path, media_type="image/svg+xml")
     return Response(status_code=204)
+
+
+def global_exception_handler(app):
+    """
+    Функция-регистратор. Принимает экземпляр FastAPI
+    и регистрирует в его реестре обработку ошибок.
+    """
+
+    # Внутренняя изолированная функция, которая фактически обрабатывает ошибку
+    def core_handler(request: Request, exc: Exception) -> HTMLResponse:
+        return funcs.handle_global_exception(request, exc)
+
+    # Принудительно регистрируем внутренний обработчик в приложении app для класса Exception
+    app.add_exception_handler(Exception, core_handler)

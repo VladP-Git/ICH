@@ -2,6 +2,7 @@ import math
 import time
 from fastapi import Request
 from logger_config import app_logger
+from fastapi.responses import HTMLResponse
 from mysql_connector import get_movies, get_all_categories, get_year_bounds
 from log_stats import get_top_5_searches, get_last_5_searches
 from log_writer import log_search
@@ -154,3 +155,38 @@ def prepare_stats_context() -> dict:
         "top_searches": top_searches,
         "last_searches": last_searches
     }
+
+
+def handle_global_exception(request: Request, exc: Exception) -> HTMLResponse:
+    """
+    Централизованная обработка критических сбоев приложения.
+    Логирует трейсбек ошибки в журнал и возвращает красивый HTML-интерфейс.
+    """
+    # 1. Фиксируем ошибку со всеми техническими деталями в app.log
+    app_logger.error(f"[КРИТИЧЕСКИЙ СБОЙ ВЕБ-ПРИЛОЖЕНИЯ]: {str(exc)}", exc_info=True)
+
+    # 2. Формируем чистый HTML-ответ со статус-кодом 500
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Ошибка сервера — Sakila Cinema</title>
+        <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+        <link href="/static/css/bootstrap-icons.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-body-secondary d-flex align-items-center justify-content-center" style="height: 100vh;">
+        <div class="text-center p-5 bg-white rounded-4 shadow-sm border border-light-subtle" style="max-width: 500px;">
+            <i class="bi bi-exclamation-triangle-fill text-danger display-1 mb-4 d-block"></i>
+            <h1 class="h3 fw-bold text-dark mb-3">Что-то пошло не так</h1>
+            <p class="text-secondary mb-4 small">На стороне веб-сервера произошел непредвиденный сбой. Подробная информация уже зафиксирована в системном журнале отладки.</p>
+            <a href="/" class="btn btn-primary px-4 py-2 rounded-3 fw-bold shadow-sm">
+                <i class="bi bi-house-door-fill me-2"></i>На главную страницу
+            </a>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content, status_code=500)
+
