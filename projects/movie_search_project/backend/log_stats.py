@@ -4,52 +4,60 @@ from pymongo.errors import PyMongoError
 from local_settings import MONGO_URI, MONGO_COLLECTION_NAME
 
 
-def get_top_5_searches():
+def get_top_5_searches() -> list[dict]:
     """
     Синхронная функция агрегации логов из MongoDB.
-    Возвращает Топ-5 самых популярных поисковых запросов пользователей.
+    Возвращает Топ-5 самых популярных уникальных комбинаций параметров поиска.
     """
     client = None
     try:
-        # Подключение к локальной БД
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
         db = client['sakila_logs']
         collection = db[MONGO_COLLECTION_NAME]
 
-        # Конвейер агрегации MongoDB
+        # Обновленный конвейер агрегации для группировки по ВСЕМ параметрам
         pipeline = [
-            # Шаг 1: Фильтруем логи, оставляя только те, где пользователь вводил текстовый запрос
+            # 1. Исключаем пустые стартовые логи (где нет никаких фильтров)
             {
-                "$match": {
-                    "params.search_word": {"$exists": True, "$ne": ""}
-                }
+                "$match": {"params": {"$ne": {}}}
             },
-            # Шаг 2: Группируем по поисковому слову и считаем количество (count)
+            # 2. Группируем вокруг ВСЕГО объекта параметров поиска
             {
                 "$group": {
-                    "_id": "$params.search_word",  # Группируем вокруг значения ключевого слова
-                    "count": {"$sum": 1}  # Прибавляем 1 за каждое совпадение
+                    "_id": "$params",      # Уникальное пересечение текста, жанра и годов
+                    "count": {"$sum": 1}   # Считаем, сколько раз вызывалась именно эта комбинация
                 }
             },
-            # Шаг 3: Сортируем по количеству вызовов в порядке убывания (-1)
+            # 3. Сортируем по количеству вызовов в порядке убывания
             {
                 "$sort": {"count": -1}
             },
-            # Шаг 4: Ограничиваем вывод пятью элементами
+            # 4. Забираем строго Топ-5 лидеров
             {
                 "$limit": 5
             }
         ]
 
-        # Выполняем агрегацию
         results = list(collection.aggregate(pipeline))
 
-        # Переформатируем результат для удобного вывода на веб-страницу
         top_searches = []
         for index, item in enumerate(results, start=1):
+            p = item["_id"]  # Сгруппированный объект параметров лежит в _id
+
+            # Формируем понятную и красивую текстовую строку критериев для таблицы
+            param_parts = []
+            if "search_word" in p and p['search_word']:
+                param_parts.append(f"Текст: '{p['search_word']}'")
+            if "category" in p and p['category']:
+                param_parts.append(f"Жанр: {p['category']}")
+            if "year" in p and p['year']:
+                param_parts.append(f"Год: {p['year']}")
+
+            params_str = ", ".join(param_parts) if param_parts else "Глобальный поиск"
+
             top_searches.append({
                 "rank": f"#{index}",
-                "keyword": item["_id"],
+                "keyword": params_str,  # Передаем полную строку параметров вместо одного слова!
                 "count": item["count"]
             })
 

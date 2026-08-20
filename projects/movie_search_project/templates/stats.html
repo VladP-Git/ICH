@@ -53,8 +53,8 @@
                             <thead class="table-light text-uppercase fs-7 text-secondary">
                             <tr>
                                 <th scope="col" class="ps-4" style="width: 10%">Место</th>
-                                <th scope="col" style="width: 60%">Поисковый запрос (Ключевое слово)</th>
-                                <th scope="col" class="text-end pe-4" style="width: 30%">Количество вызовов</th>
+                                <th scope="col" style="width: 60%">Поисковый запрос</th>
+                                <th scope="col" class="text-end pe-4" style="width: 30%">Повторов</th>
                             </tr>
                             </thead>
                             <!-- Динамическая таблица статистики в stats.html -->
@@ -66,16 +66,15 @@
                                         <td class="ps-4 fw-bold {% if item.rank in ['#1', '#2', '#3'] %}text-primary{% else %}text-secondary{% endif %}">
                                             {{ item.rank }}
                                         </td>
-                                        <!-- Выводим ключевое слово -->
-                                        <td>
-                                                <span class="badge bg-light text-dark border py-2 px-3 fs-6">
-                                                    {{ item.keyword }}
-                                                </span>
+                                        <!-- Выводим параметры поискового запроса -->
+                                        <td style="max-width: 320px;">
+                                            <span class="badge bg-light text-dark border py-2 px-3 fs-6 text-wrap text-start w-100 fw-medium">
+                                                {{ item.keyword }}
+                                            </span>
                                         </td>
                                         <!-- Выводим количество вызовов -->
-                                        <td class="text-end pe-4 fw-bold">
-                                            {{ item.count }} {% if item.count % 10 == 1 and item.count % 100 != 11 %}
-                                            раз{% else %}раза{% endif %}
+                                        <td class="text-end pe-4 fw-bold {% if item.rank in ['#1', '#2', '#3'] %}text-primary{% else %}text-secondary{% endif %}">
+                                            {{ item.count }}
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -95,10 +94,8 @@
             <!-- Карточка №2: Последние 5 запросов -->
             <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4 mt-5">
                 <div class="card-header bg-dark text-white py-3 d-flex align-items-center justify-content-between">
-                    <h5 class="mb-0 fw-semibold"><i class="bi bi-clock-history me-2 text-info"></i>5 последних
-                        уникальных запросов</h5>
+                    <h5 class="mb-0 fw-semibold"><i class="bi bi-clock-history me-2 text-info"></i>5 последних уникальных запросов</h5>
                     <span class="badge bg-secondary"><i class="bi bi-leaf"></i></span>
-                    <!--                    <span class="badge bg-secondary">История логов</span>  -->
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -107,7 +104,6 @@
                             <tr>
                                 <th scope="col" class="ps-4" style="width: 15%">Время</th>
                                 <th scope="col" style="width: 55%">Критерии поиска</th>
-                                <th scope="col" style="width: 15%">Тип</th>
                                 <th scope="col" class="text-end pe-4" style="width: 15%">Найдено</th>
                             </tr>
                             </thead>
@@ -115,16 +111,26 @@
                             {% if last_searches %}
                                 {% for item in last_searches %}
                                     <tr>
+                                        <!-- Столбец 1: Время -->
                                         <td class="ps-4 text-muted small">{{ item.time }}</td>
-                                        <td><span class="fw-medium text-dark">{{ item.params }}</span></td>
-                                        <td><span class="badge bg-light text-secondary border">{{ item.type }}</span>
+
+                                        <!-- Столбец 2: Критерии поиска (Точь-в-точь как в Топ-5) -->
+                                        <td style="max-width: 320px;">
+                                            <span class="badge bg-light text-dark border py-2 px-3 fs-6 text-wrap text-start w-100 fw-medium">
+                                                {{ item.params }}
+                                            </span>
                                         </td>
-                                        <td class="text-end pe-4 fw-bold text-success">{{ item.results }} ф.</td>
+
+                                        <!-- Столбец 3: Найдено (Убран столбец "Тип", цвет изменен на серый) -->
+                                        <td class="text-end pe-4 fw-bold text-secondary">
+                                            {{ item.results }} ф.
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="4" class="text-center py-4 text-muted">
+                                    <!-- colspan уменьшен до 3, так как мы удалили один столбец -->
+                                    <td colspan="3" class="text-center py-4 text-muted">
                                         <i class="bi bi-info-circle me-2"></i> История запросов пуста.
                                     </td>
                                 </tr>

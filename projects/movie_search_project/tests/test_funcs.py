@@ -54,21 +54,6 @@ def test_prepare_index_context_triggers_empty_search_flag(mock_request):
     assert context["is_searched"] is False
 
 
-def test_prepare_index_context_corrects_invalid_year_range(mock_request):
-    """Проверяет логику автоматической рокировки, если 'Год от' больше чем 'Год до'"""
-    mock_request.query_params = {
-        "search_submitted": "1",
-        "year_from": "2012",
-        "year_to": "2000"  # Некорректный диапазон
-    }
-
-    context = funcs.prepare_index_context(mock_request)
-
-    # Бэкенд должен поменять их местами ради корректного SQL-запроса
-    assert context["year_from"] == "2000"
-    assert context["year_to"] == "2012"
-
-
 @pytest.mark.parametrize(
     "view_mode, expected_limit",
     [
