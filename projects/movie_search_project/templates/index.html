@@ -4,31 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Поиск фильмов — Sakila Cinema</title>
-    <!-- Подключаем векторный фавикон-киноленту -->
+    <!-- ПОЧЕМУ ТАК: Все Bootstrap-ресурсы переведены на локальное хранение в static/ -->
+    <!-- Это гарантирует 100% автономность фронтенда и обход таймаутов внешних CDN сетей -->
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
-    <!-- Подключаем Bootstrap 5 CSS локально -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
-    <!-- Подключаем Bootstrap Icons для красивых иконок локально -->
     <link href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}" rel="stylesheet">
-    <!-- Кастомные стили сайта -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 </head>
 <body class="bg-body-secondary">
 
-<!-- Шапка (Hero-секция) с красивым фоном из Unsplash -->
+<!-- ─── ПРЕЗЕНТАЦИЯ: ВЕБ-ШАПКА И МНОГОМЕРНАЯ ФОРМА ПОИСКА ─────────────────────── -->
 <header class="hero-section text-white text-center d-flex align-items-center justify-content-center">
-    <div class="container position-relative z-3 py-2"> <!-- Минимальный отступ py-2 -->
-        <h1 class="fs-2 fw-bold mb-0">Найди свой любимый фильм</h1> <!-- Элегантный размер fs-2 вместо display -->
+    <div class="container position-relative z-3 py-2">
+        <h1 class="fs-2 fw-bold mb-0">Найди свой любимый фильм</h1>
         <p class="small text-white-50 mb-2">Учебный проект поиска по базе данных Sakila</p>
 
-        <!-- Форма поиска -->
+        <!-- Форма поиска с автоматическим сохранением GET-параметров в URL -->
         <form method="GET" action="/" class="row g-2 justify-content-center bg-dark bg-opacity-75 p-3 rounded-4 shadow">
-            <!-- Скрытый маркер для бэкенда, сообщающий, что кнопка "Искать" была нажата -->
+
+            <!-- 🎯: Скрытый маркер search_submitted сообщает бэкенду, -->
+            <!-- что кнопка отправлена. Это позволяет разделять "холодный визит" и пустой поисковый запрос. -->
             <input type="hidden" name="search_submitted" value="1">
 
-            <!-- Поле ключевого слова -->
+            <!-- Поле ввода ключевого слова (Полнотекстовый поиск) -->
             <div class="col-md-4">
-                <!-- Добавляем скрытый label, связанный с input через id -->
+                <!-- ACCESSIBILITY: Кастомный visually-hidden лейбл привязан через id для screen-reader устройств -->
                 <label for="search_word_input" class="visually-hidden">Название фильма или описание</label>
                 <div class="input-group">
                     <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
@@ -37,39 +37,34 @@
                 </div>
             </div>
 
-            <!-- Фильтр: Жанр -->
+            <!-- Фильтр: Выпадающий список жанров (Динамический рендеринг) -->
             <div class="col-md-2">
-                <!-- Добавляем скрытый label, связанный с select через id -->
                 <label for="category_select" class="visually-hidden">Выберите жанр</label>
                 <select name="category" id="category_select" class="form-select">
                     <option value="" {% if not category %}selected{% endif %}>Все жанры</option>
-                    <!-- Цикл Jinja2 пробегает по списку строк, полученных из MySQL -->
+                    <!-- ПОЧЕМУ ТАК: Цикл Jinja2 пробегает по списку строк, полученных напрямую из MySQL таблицы category -->
                     {% for cat in categories %}
                         <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
                     {% endfor %}
                 </select>
             </div>
 
-            <!-- Фильтр: Год выпуска ОТ -->
+            <!-- Фильтр: Временной диапазон ОТ -->
             <div class="col-md-2">
-                <!-- Добавляем скрытый label, связанный с year_from_input через id -->
                 <label for="year_from_input" class="visually-hidden">Год выпуска от</label>
-                <!-- В placeholder динамически подставляется минимальный год из базы -->
+                <!-- ПОЧЕМУ ТАК: Границы min/max динамически подставляются из агрегационных функций MIN()/MAX() базы MySQL -->
                 <input type="number" name="year_from" id="year_from_input" value="{{ year_from }}" class="form-control"
                        placeholder="Год от ({{ min_db_year }})" min="{{ min_db_year }}" max="{{ max_db_year }}">
             </div>
 
-            <!-- Фильтр: Год выпуска ДО -->
+            <!-- Фильтр: Временной диапазон ДО -->
             <div class="col-md-2">
-                <!-- Добавляем скрытый label, связанный с year_to_input через id -->
                 <label for="year_to_input" class="visually-hidden">Год выпуска до</label>
-                <!-- В placeholder динамически подставляется максимальный год из базы -->
                 <input type="number" name="year_to" id="year_to_input" value="{{ year_to }}" class="form-control"
                        placeholder="Год до ({{ max_db_year }})" min="{{ min_db_year }}" max="{{ max_db_year }}"
                        onfocus="if(!this.value) { this.value='{{ max_db_year }}'; }">
             </div>
 
-            <!-- Кнопка поиска -->
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100 fw-bold">Искать</button>
             </div>
@@ -77,55 +72,45 @@
     </div>
 </header>
 
-<!-- Основной контент: Результаты поиска (Добавлен ID-якорь для удержания фокуса) -->
+<!-- ─── ПРЕЗЕНТАЦИЯ: РЕЗУЛЬТАТЫ ВЫДАЧИ И ИНСТРУМЕНТЫ УПРАВЛЕНИЯ СЕТКОЙ ─────────── -->
+<!-- ID якорь movie-section удерживает фокус экрана при перелистывании страниц -->
 <main class="container my-5" id="movie-section">
 
-    <!-- ВСПЛЫВАЮЩЕЕ УВЕДОМЛЕНИЕ ДЛЯ ПУСТОГО ПОИСКА ИЛИ ПРОБЕЛОВ -->
+    <!-- ОБРАБОТКА ИСКЛЮЧЕНИЙ UX: ВСПЛЫВАЮЩЕЕ УВЕДОМЛЕНИЕ О ПУСТОМ ВВОДЕ -->
     {% if empty_search %}
         <div class="alert alert-info alert-dismissible fade show rounded-3 shadow-sm border-info mb-4" role="alert">
-            <!-- text-center центрирует первую строку на странице -->
             <div class="text-center mb-3">
                 <strong class="fs-5"><i class="bi bi-info-circle-fill me-2 text-info"></i>Введён пустой текстовый запрос или только пробелы.</strong>
             </div>
-            <!-- Дополнительный блок для описания условий -->
             <div class="text-muted small border-top pt-2">
-                При необходимости, уточните ваш запрос: <br>
-                для поиска определенного фильма введите его <strong>название</strong> или ключевое слово из <strong>описания картины</strong>.
+                При необходимости, уточните ваш запрос: для поиска определенного фильма введите его <strong>название</strong> или ключевое слово из <strong>описания картины</strong>.
             </div>
-            <!-- Кнопка-крестик для плавного закрытия уведомления -->
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
         </div>
     {% endif %}
 
-
-    <!-- Сетка карточек фильмов (Bootstrap Grid) -->
-    <!-- Этот блок отвечает за заголовок и кнопку статистики -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mb-4">
 
-        <!-- Левая часть: Название режима и Счетчик -->
+        <!-- Левая часть панели: Счетчики и контекстные статусы страницы -->
         <div class="d-flex align-items-center gap-2 flex-wrap">
-            <!-- Кнопка-статус для обозначения текущего режима страницы -->
             <span class="btn btn-sm btn-outline-secondary px-3 py-1.5 fw-bold shadow-sm" style="pointer-events: none;">
                 <i class="bi bi-film me-1"></i>
                 {% if is_searched %} Результаты поиска {% else %} Новинки проката {% endif %}
             </span>
-
-            <!-- Кнопка-индикатор количества отображенных карточек -->
             <span class="btn btn-sm btn-secondary px-3 py-1.5 fw-medium shadow-sm" style="pointer-events: none;">
-                <i class="bi bi-window-stack me-1"></i>&nbsp;&nbsp;Карточек :&nbsp;  <span class="badge bg-white text-dark ms-1">{{ movies|length }}</span>
+                <i class="bi bi-window-stack me-1"></i>&nbsp;&nbsp;Карточек :&nbsp; <span class="badge bg-white text-dark ms-1">{{ movies|length }}</span>
             </span>
         </div>
 
-        <!-- Правая часть: Блок инструментов (Режим сетки + Статистика) -->
+        <!-- Правая часть панели: Переключение формата отображения (ТЗ vs Адаптив) -->
         <div class="d-flex align-items-center gap-2 flex-wrap">
-
-            <!-- Выпадающее меню выбора режима сетки -->
             <div class="dropdown">
                 <button class="btn btn-sm btn-secondary dropdown-toggle px-3 py-1.5 fw-medium shadow-sm" type="button" id="dropdownGridMenu" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-grid-3x3-gap-fill me-1"></i>&nbsp;Формат сетки
                 </button>
                 <ul class="dropdown-menu shadow rounded-3 border-0 mt-2" aria-labelledby="dropdownGridMenu">
                     <li>
+                        <!-- Переключение лимита на Демо-режим (6 фильмов на страницу) -->
                         <a class="dropdown-menu-item dropdown-item py-2 px-3 d-flex align-items-center justify-content-between {% if view_mode == 'adaptive' %}active{% endif %}"
                            href="{{ url_for('index_page', search_submitted=(1 if is_searched else None), search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=1, view_mode='adaptive') }}">
                             <span><i class="bi bi-window-stack me-2"></i>Демонстрационный - по 6-ть фильмов</span>
@@ -133,6 +118,7 @@
                         </a>
                     </li>
                     <li>
+                        <!-- Переключение лимита на Строгий режим ТЗ (10 фильмов на страницу) -->
                         <a class="dropdown-menu-item dropdown-item py-2 px-3 d-flex align-items-center justify-content-between {% if view_mode == 'strict' %}active{% endif %}"
                            href="{{ url_for('index_page', search_submitted=(1 if is_searched else None), search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=1, view_mode='strict') }}">
                             <span><i class="bi bi-list-ol me-2"></i>ТЗ - показывать по 10-ть фильмов</span>
@@ -142,7 +128,6 @@
                 </ul>
             </div>
 
-            <!-- Кнопка перехода на страницу статистики -->
             <a href="/stats" class="btn btn-outline-secondary btn-sm shadow-sm py-1.5 fw-medium">
                 <i class="bi bi-bar-chart-fill me-1"></i> Статистика запросов
             </a>
@@ -151,22 +136,22 @@
     </div>
 
 
-    <!-- Сетка карточек фильмов, распределение карточек по 3 в ряд -->
+  <!-- ─── ПРЕЗЕНТАЦИЯ: СЕТКА КАРТОЧЕК И БУТСТРАП МОДАЛЬНЫЕ ОКНА ───────────────── -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% if movies %}
             {% for movie in movies %}
                 <div class="col">
-                    <!-- Делаем карточку кликабельной кнопкой, привязанной к уникальному ID модального окна -->
+                    <!-- ПОЧЕМУ ТАК: Карточка является интерактивным триггером модального окна. -->
+                    <!-- Связывание происходит динамически через film_id средствами шаблонизатора Jinja2. -->
                     <div class="card h-100 shadow-sm transition-hover border border-light-subtle rounded-3 position-relative"
                          style="cursor: pointer;"
                          data-bs-toggle="modal"
                          data-bs-target="#movieModal{{ movie.film_id }}">
                         <div class="card-body">
                             <div class="mb-3">
-                                <!-- Название фильма занимает всю верхнюю строчку, текст подчеркивается и не сжимается -->
                                 <h5 class="card-title text-truncate mb-2 text-center text-decoration-underline" title="{{ movie.title }}">{{ movie.title }}</h5>
-                                <!-- Блок жанров остается выровненным слева направо -->
                                 <div class="d-flex flex-wrap gap-1 align-items-center">
+                                    <!-- ПОЧЕМУ ТАК: Строка жанров из GROUP_CONCAT разбивается через .split() на бэйджи -->
                                     {% for cat_item in movie.category_name.split(', ') %}
                                         <span class="badge bg-primary fs-7 shadow-sm">{{ cat_item }}</span>
                                     {% endfor %}
@@ -181,7 +166,7 @@
                     </div>
                 </div>
 
-                <!-- БУТСТРАП МОДАЛЬНОЕ ОКНО ДЛЯ ТЕКУЩЕГО ФИЛЬМА -->
+                <!-- ДИНАМИЧЕСКОЕ МОДАЛЬНОЕ ОКНО ДЛЯ ТЕКУЩЕГО ФИЛЬМА -->
                 <div class="modal fade" id="movieModal{{ movie.film_id }}" tabindex="-1"
                      aria-labelledby="modalLabel{{ movie.film_id }}" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -192,18 +177,17 @@
                                 <h5 class="modal-title fw-bold" id="modalLabel{{ movie.film_id }}">
                                     <i class="bi bi-film me-2 text-warning"></i>{{ movie.title }}
                                 </h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                                        aria-label="Закрыть"></button>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
                             </div>
 
-                            <!-- Тело окна с расширенными параметрами -->
+                            <!-- Тело окна: Интеграция расширенных реляционных данных MySQL -->
                             <div class="modal-body p-4">
                                 <p class="lead text-dark mb-4 border-start border-primary border-4 ps-3 py-1">
                                     {{ movie.description }}
                                 </p>
 
                                 <div class="row g-3">
-                                    <!-- Колонка 1 -->
+                                    <!-- Левая колонка характеристик -->
                                     <div class="col-sm-6">
                                         <ul class="list-group list-group-flush">
                                             <li class="list-group-item d-flex justify-content-between align-items-center px-0">
@@ -224,7 +208,8 @@
                                             </li>
                                         </ul>
                                     </div>
-                                    <!-- Колонка 2 (Расширенные данные из MySQL) -->
+
+                                    <!-- Правая колонка характеристик (Бизнес-метрики Sakila) -->
                                     <div class="col-sm-6">
                                         <ul class="list-group list-group-flush">
                                             <li class="list-group-item d-flex justify-content-between align-items-center px-0">
@@ -243,14 +228,14 @@
                                     </div>
                                 </div>
 
-                                <!-- Специальные фичи фильма -->
+                                <!-- Дополнительные фичи (Special Features) -->
                                 {% if movie.special_features %}
                                     <div class="mt-4 bg-light p-3 rounded-3 border">
                                         <h6 class="fw-bold text-secondary mb-2"><i
                                                 class="bi bi-star-fill me-2 text-warning"></i>В комплекте (Special
                                             Features):</h6>
                                         <div class="d-flex flex-wrap gap-2">
-                                            <!-- Проверяем: если это строка, делим через .split(','), если множество - перебираем напрямую -->
+                                            <!-- ПОЧЕМУ ТАК: Защита от падения. Проверяем тип данных (строка или коллекция SET) перед обходом -->
                                             {% if movie.special_features is string %}
                                                 {% for feature in movie.special_features.split(',') %}
                                                     <span class="badge bg-secondary px-3 py-2 fs-7">{{ feature.strip() }}</span>
@@ -265,7 +250,6 @@
                                 {% endif %}
                             </div>
 
-                            <!-- Подвал окна -->
                             <div class="modal-footer border-0 bg-light rounded-bottom-4 py-2">
                                 <button type="button" class="btn btn-secondary fw-semibold px-4"
                                         data-bs-dismiss="modal">Закрыть
@@ -277,6 +261,7 @@
                 </div>
             {% endfor %}
         {% else %}
+            <!-- Заглушка на случай пустой выборки из базы данных -->
             <div class="col-12 text-center my-5">
                 <i class="bi bi-film text-muted display-1"></i>
                 <p class="lead text-secondary mt-3">Фильмы по вашему запросу не найдены. Попробуйте изменить
@@ -285,18 +270,16 @@
         {% endif %}
     </div>
 
-    <!-- Секция пагинации (Кнопка "Показать еще" + Выпадающее меню + Цифровое меню) -->
+    <!-- ─── ПРЕЗЕНТАЦИЯ: ИНТЕЛЛЕКТУАЛЬНЫЙ ДВУХУРОВНЕВЫЙ БЛОК ПАГИНАЦИИ ──────────── -->
     <div class="mt-5">
         {% if total_pages > 1 %}
 
-            <!-- 1. Блок управления: Кнопка "Показать еще" + Переключатель сетки -->
+            <!-- Уровень 1: Кнопка инкрементного дозагруза "Показать еще" -->
             <div class="d-flex justify-content-center align-items-center gap-2 mb-4 flex-wrap">
                 {% if current_page < total_pages %}
-                    <!-- Динамическая ссылка кнопки: передаем текущий view_mode -->
                     <a href="{{ url_for('index_page', search_submitted=(1 if is_searched else None), search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1, view_mode=view_mode) }}"
                        class="btn btn-outline-primary px-4 py-2 fw-bold shadow-sm">
                         <i class="bi bi-plus-circle me-2"></i>
-                        <!-- Динамический текст кнопки в зависимости от режима -->
                         {% if view_mode == 'strict' %}
                             Показать еще 10 фильмов
                         {% else %}
@@ -310,11 +293,9 @@
                 {% endif %}
             </div>
 
-            <!-- 2. Цифровое навигационное меню < 1 ... 3 4 5 ... 7 > -->
             <nav aria-label="Навигация по фильмам">
                 <ul class="pagination justify-content-center shadow-sm rounded">
 
-                    <!-- Стрелка "Назад" -->
                     <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
                         <a class="page-link"
                            href="{{ url_for('index_page', search_submitted=(1 if is_searched else None), search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page - 1, view_mode=view_mode) }}"
@@ -323,10 +304,7 @@
                         </a>
                     </li>
 
-                    <!-- Генерируем цифровые страницы при помощи цикла Jinja2 -->
-                    <!-- Создаём динамический ряд кнопок от 1 до максимального числа страниц -->
                     {% for p in range(1, total_pages + 1) %}
-                        <!-- Логика отображения: первая, последняя или в радиусе 1 шага от текущей -->
                         {% if p == 1 or p == total_pages or (p >= current_page - 1 and p <= current_page + 1) %}
                             <li class="page-item {% if current_page == p %}active{% endif %}">
                                 <a class="page-link"
@@ -334,13 +312,11 @@
                                     {{ p }}
                                 </a>
                             </li>
-                        <!-- Если мы пролетели мимо соседей, но еще не дошли до конца, ставим ОДНО многоточие слева или справа -->
                         {% elif p == 2 or p == total_pages - 1 %}
                             <li class="page-item disabled"><span class="page-link">...</span></li>
                         {% endif %}
                     {% endfor %}
 
-                    <!-- Стрелка "Вперед" (Активна, если мы не на последней странице) -->
                     <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
                         <a class="page-link"
                            href="{{ url_for('index_page', search_submitted=(1 if is_searched else None), search_word=search_word, category=category, year_from=year_from, year_to=year_to, page=current_page + 1, view_mode=view_mode) }}"
@@ -352,23 +328,18 @@
                 </ul>
             </nav>
 
-            <!-- Дополнительная информационная строчка -->
             <div class="text-center text-muted small mt-2">
                 Страница {{ current_page }} из {{ total_pages }} (Всего найдено фильмов: {{ total_movies }})
             </div>
 
         {% endif %}
     </div>
-
 </main>
 
-<!-- Подключаем Bootstrap 5 JS Bundle локально -->
-<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-
-<!-- Скрипты для работы интерфейса: очистка ARIA-предупреждений, валидация фильтров и плавный скролл -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // --- 1. ОЧИСТКА КОНСОЛИ ОТ ARIA-ПРЕДУПРЕЖДЕНИЙ МОДАЛЬНЫХ ОКОН ---
+
+        // 1. ОЧИСТКА КОНСОЛИ ОТ ARIA-ПРЕДУПРЕЖДЕНИЙ ФОКУСА МОДАЛЬНЫХ ОКОН
         const modals = document.querySelectorAll('.modal');
         modals.forEach(modal => {
             modal.addEventListener('hide.bs.modal', function () {
@@ -378,7 +349,9 @@
             });
         });
 
-        // --- 2. ДИНАМИЧЕСКАЯ ВАЛИДАЦИЯ ДИАПАЗОНА ГОДОВ (ЗАЩИТА ФОРМЫ) ---
+        // 2. ДИНАМИЧЕСКАЯ ФРОНТЕНД-ВАЛИДАЦИЯ ДИАПАЗОНА ГОДОВ (HTML5 setCustomValidity)
+        // ПОЧЕМУ ТАК: Поскольку рокировка на бэкенде исключена, валидация на клиенте
+        // блокирует отправку некорректной формы до ухода запроса на сервер, снижая нагрузку.
         const yearFromInput = document.getElementById('year_from_input');
         const yearToInput = document.getElementById('year_to_input');
 
@@ -396,25 +369,23 @@
         yearFromInput.addEventListener('input', validateYearRange);
         yearToInput.addEventListener('input', validateYearRange);
 
-        // --- 3. ПЛАВНЫЙ СКРОЛЛ К ЯКОРЮ ПРИ ПЕРЕЗАГРУЗКЕ СТРАНИЦЫ ---
-        // Если в URL присутствует хэш #movie-section
+        // 3. ПЛАВНЫЙ НАЦИВНЫЙ СКРОЛЛ К ЯКОРЮ ПРИ ПЕРЕЗАГРУЗКЕ СТРАНИЦЫ ПАГИНАЦИИ
         if (window.location.hash === '#movie-section') {
             const target = document.getElementById('movie-section');
             if (target) {
-                // Временно запрещаем браузеру прыгать резко (сбрасываем дефолтное поведение)
-                window.scrollTo(0, 0);
-
-                // Используем встроенный нативный метод плавной прокрутки
+                window.scrollTo(0, 0); // Сбрасываем дефолтный резкий прыжок браузера
                 setTimeout(function() {
                     target.scrollIntoView({
-                        behavior: 'smooth', // Делает анимацию плавной
-                        block: 'start'      // Выравнивает верхнюю границу блока по верху экрана
+                        behavior: 'smooth',
+                        block: 'start'
                     });
-                }, 100); // Микро-задержка в 50мс, чтобы браузер успел отрисовать сетку карточек
+                }, 100); // Микрозадержка для гарантированной отрисовки DOM-сетки карточек
             }
         }
     });
 </script>
 
+<!-- Подключаем локальный Bootstrap JS Bundle -->
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 </body>
 </html>

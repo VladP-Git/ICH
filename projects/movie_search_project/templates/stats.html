@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Статистика запросов — Sakila Cinema</title>
-    <!-- Подключаем векторный фавикон-киноленту -->
+    <!-- ПОЧЕМУ ТАК: Все стили и иконки подключены локально через url_for -->
+    <!-- Это обеспечивает независимость аналитического интерфейса от внешних CDN-серверов -->
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
-    <!-- Подключаем Bootstrap 5 CSS локально -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
-    <!-- Подключаем Bootstrap Icons для красивых иконок локально -->
     <link href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}" rel="stylesheet">
-    <!-- Кастомные стили сайта -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 </head>
 <body class="bg-body-secondary">
@@ -20,8 +18,9 @@
     <div class="container d-flex justify-content-between align-items-center">
         <nav aria-label="breadcrumb" class="mb-0">
             <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="/" class="text-decoration-none"><i
-                        class="bi bi-house-door-fill me-1"></i>Главная</a></li>
+                <li class="breadcrumb-item">
+                    <a href="/" class="text-decoration-none"><i class="bi bi-house-door-fill me-1"></i>Главная</a>
+                </li>
                 <li class="breadcrumb-item active" aria-current="page">Статистика поисковых запросов</li>
             </ol>
         </nav>
@@ -34,17 +33,15 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
 
-            <!-- Заголовок секции -->
             <div class="text-center mb-5">
                 <h1 class="fw-bold mb-2">Аналитика поиска</h1>
                 <p class="text-secondary">Данные собираются в реальном времени и логируются в СУБД MongoDB</p>
             </div>
 
-            <!-- Карточка со статистикой -->
+            <!-- ─── ПРЕЗЕНТАЦИЯ: ТАБЛИЦА ТОП-5 ПОПУЛЯРНЫХ ЗАПРОСОВ (AGGREGATION PIPELINE) ─── -->
             <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
                 <div class="card-header bg-dark text-white py-3 d-flex align-items-center justify-content-between">
-                    <h5 class="mb-0 fw-semibold"><i class="bi bi-graph-up-arrow me-2 text-warning"></i>Топ-5 популярных
-                        поисковых запросов</h5>
+                    <h5 class="mb-0 fw-semibold"><i class="bi bi-graph-up-arrow me-2 text-warning"></i>Топ-5 популярных поисковых запросов</h5>
                     <span class="badge bg-secondary"><i class="bi bi-leaf"></i></span>
                 </div>
                 <div class="card-body p-0">
@@ -57,22 +54,22 @@
                                 <th scope="col" class="text-end pe-4" style="width: 30%">Повторов</th>
                             </tr>
                             </thead>
-                            <!-- Динамическая таблица статистики в stats.html -->
                             <tbody>
+                            <!-- ПОЧЕМУ ТАК: Рендерим массив top_searches, сформированный нативной группировкой MongoDB -->
                             {% if top_searches %}
                                 {% for item in top_searches %}
                                     <tr>
-                                        <!-- Выводим ранг (#1, #2 и т.д.) -->
+                                        <!-- Выводим ранг (#1, #2, #3 подсвечиваем синим цветом лидера) -->
                                         <td class="ps-4 fw-bold {% if item.rank in ['#1', '#2', '#3'] %}text-primary{% else %}text-secondary{% endif %}">
                                             {{ item.rank }}
                                         </td>
-                                        <!-- Выводим параметры поискового запроса -->
+                                        <!-- Выводим скомпилированную многомерную строку параметров -->
                                         <td style="max-width: 320px;">
                                             <span class="badge bg-light text-dark border py-2 px-3 fs-6 text-wrap text-start w-100 fw-medium">
                                                 {{ item.keyword }}
                                             </span>
                                         </td>
-                                        <!-- Выводим количество вызовов -->
+                                        <!-- Выводим количество вызовов (счетчик $sum) -->
                                         <td class="text-end pe-4 fw-bold {% if item.rank in ['#1', '#2', '#3'] %}text-primary{% else %}text-secondary{% endif %}">
                                             {{ item.count }}
                                         </td>
@@ -91,7 +88,7 @@
                 </div>
             </div>
 
-            <!-- Карточка №2: Последние 5 запросов -->
+            <!-- ─── ПРЕЗЕНТАЦИЯ: ТАБЛИЦА СВЕЖЕЙ УНИКАЛЬНОЙ ИСТОРИИ (LAST-5 UNIQUE) ─────── -->
             <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4 mt-5">
                 <div class="card-header bg-dark text-white py-3 d-flex align-items-center justify-content-between">
                     <h5 class="mb-0 fw-semibold"><i class="bi bi-clock-history me-2 text-info"></i>5 последних уникальных запросов</h5>
@@ -102,26 +99,25 @@
                         <table class="table table-hover table-striped mb-0 align-middle">
                             <thead class="table-light text-uppercase fs-7 text-secondary">
                             <tr>
-                                <th scope="col" class="ps-4" style="width: 15%">Время</th>
-                                <th scope="col" style="width: 55%">Критерии поиска</th>
-                                <th scope="col" class="text-end pe-4" style="width: 15%">Найдено</th>
+                                <th scope="col" class="ps-4" style="width: 20%">Время</th>
+                                <th scope="col" style="width: 60%">Критерии поиска</th>
+                                <th scope="col" class="text-end pe-4" style="width: 20%">Найдено</th>
                             </tr>
                             </thead>
                             <tbody>
+                            <!-- ПОЧЕМУ ТАК: Массив last_searches очищен на уровне СУБД от дубликатов оператором $first -->
                             {% if last_searches %}
                                 {% for item in last_searches %}
                                     <tr>
-                                        <!-- Столбец 1: Время -->
+                                        <!-- Столбец 1: Локальное время, конвертированное бэкендом из UTC -->
                                         <td class="ps-4 text-muted small">{{ item.time }}</td>
-
-                                        <!-- Столбец 2: Критерии поиска (Точь-в-точь как в Топ-5) -->
+                                        <!-- Столбец 2: Критерии поиска -->
                                         <td style="max-width: 320px;">
                                             <span class="badge bg-light text-dark border py-2 px-3 fs-6 text-wrap text-start w-100 fw-medium">
                                                 {{ item.params }}
                                             </span>
                                         </td>
-
-                                        <!-- Столбец 3: Найдено (Убран столбец "Тип", цвет изменен на серый) -->
+                                        <!-- Столбец 3: Количество подошедших реляционных фильмов (результативность) -->
                                         <td class="text-end pe-4 fw-bold text-secondary">
                                             {{ item.results }} ф.
                                         </td>
@@ -129,7 +125,6 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <!-- colspan уменьшен до 3, так как мы удалили один столбец -->
                                     <td colspan="3" class="text-center py-4 text-muted">
                                         <i class="bi bi-info-circle me-2"></i> История запросов пуста.
                                     </td>
@@ -141,18 +136,18 @@
                 </div>
             </div>
 
-
             <!-- Кнопка возврата -->
-            <div class="text-center mt-4">
-                <a href="/" class="btn btn-primary px-4 py-2 rounded-3 fw-bold"><i class="bi bi-arrow-left me-2"></i>
-                    Вернуться на главную страницу</a>
+            <div class="text-center mt-4 mb-5">
+                <a href="/" class="btn btn-primary px-4 py-2 rounded-3 fw-bold shadow-sm">
+                    <i class="bi bi-arrow-left me-2"></i>Вернуться на главную страницу
+                </a>
             </div>
 
         </div>
     </div>
 </main>
 
-<!-- Подключаем Bootstrap 5 JS Bundle локально -->
+<!-- Подключаем локальный Bootstrap JS Bundle -->
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 </body>
 </html>
