@@ -89,9 +89,9 @@ movie_search_project/
     ```bash
     pip install pytest
     ```
-2.  Запустите тестовый движок из корня проекта `movie_search_project/` командой:
+2.  Запустите тестовый движок из корня проекта `movie_search_project\tests` командой:
     ```bash
-    pytest tests/
+    pytest -v 
     ```
 Сервер автоматически подхватит конфигурацию `conftest.py`, выполнит все проверки и выведет отчет в консоль.
 
